@@ -1,16 +1,16 @@
 # Learning Platform Frontend
 
-## Tổng quan
-Đây là phần frontend của nền tảng học tập, được xây dựng với Next.js, TypeScript và Tailwind CSS. Dự án bao gồm các trang đăng nhập và đăng ký với giao diện người dùng hiện đại và phản hồi.
+## Overview
+This is the frontend of a learning platform, built with Next.js, TypeScript, and Tailwind CSS. The project includes login and registration pages with a modern and responsive user interface.
 
-## Tính năng
-- **Trang đăng nhập** với trường email, mật khẩu, ghi nhớ đăng nhập và liên kết quên mật khẩu
-- **Trang đăng ký** với lựa chọn vai trò (học viên/giáo viên) và các trường thông tin cần thiết
-- Thiết kế đáp ứng hoàn toàn (mobile-first)
-- Các hiệu ứng chuyển đổi đẹp mắt nhờ Tailwind CSS
-- Mã TypeScript đầy đủ cho an toàn kiểu dữ liệu
+## Features
+- **Login page** with email field, password, remember login option, and forgot password link
+- **Registration page** with role selection (student/teacher) and necessary information fields
+- Fully responsive design (mobile-first)
+- Beautiful transition effects thanks to Tailwind CSS
+- Complete TypeScript code for data type safety
 
-## Cấu trúc dự án
+## Project Structure
 ```
 frontend/
 ├── app/
@@ -33,29 +33,29 @@ frontend/
 └── next.config.js
 ```
 
-## Cài đặt
+## Installation
 
-1. Clone repository
-2. Cài đặt dependencies:
+1. Clone the repository
+2. Install dependencies:
 ```bash
 cd frontend
 npm install
 ```
 
-3. Chạy server phát triển:
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Mở [http://localhost:3000](http://localhost:3000) trên trình duyệt để xem kết quả.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 
-## Màu sắc thương hiệu
-- Trắng: #FFFFFF
-- Xanh navy: #152C61 (Chính)
-- Đỏ đậm: #AC292D (Phụ)
+## Brand Colors
+- White: #FFFFFF
+- Navy Blue: #152C61 (Primary)
+- Dark Red: #AC292D (Secondary)
 
-## Chi tiết triển khai
-- Sử dụng Next.js App Router
-- Tailwind CSS cho việc tạo kiểu
-- TypeScript để đảm bảo an toàn kiểu
-- Thành phần có thể tái sử dụng (AuthLayout, LoginForm, SignUpForm) 
+## Implementation Details
+- Uses Next.js App Router
+- Tailwind CSS for styling
+- TypeScript for type safety
+- Reusable components (AuthLayout, LoginForm, SignUpForm)
