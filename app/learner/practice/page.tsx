@@ -23,7 +23,32 @@ export default function Practice() {
     const fetchTests = async () => {
       try {
         setLoading(true);
-        const availableTests = await LearnerTestsService.getAvailableTests();
+        const response = await LearnerTestsService.getAvailableTests();
+        
+        // Handle different response structures
+        let availableTests: LearnerTest[] = [];
+        
+        if (Array.isArray(response)) {
+          // If response is already an array
+          availableTests = response;
+        } else if (response && typeof response === 'object') {
+          // If response is an object with a tests property or similar
+          // Use type assertion to tell TypeScript this is a record with potential string keys
+          const responseObj = response as Record<string, unknown>;
+          
+          if (responseObj.tests && Array.isArray(responseObj.tests)) {
+            availableTests = responseObj.tests as LearnerTest[];
+          } else if (responseObj.data && Array.isArray(responseObj.data)) {
+            availableTests = responseObj.data as LearnerTest[];
+          } else {
+            // Try to extract any array property from the response
+            const arrayProps = Object.values(responseObj).find(val => Array.isArray(val));
+            if (arrayProps) {
+              availableTests = arrayProps as LearnerTest[];
+            }
+          }
+        }
+        
         setTests(availableTests);
         if (availableTests.length === 0) {
           toast('No tests available at the moment', { icon: 'ℹ️' });
@@ -32,6 +57,7 @@ export default function Practice() {
         console.error('Error fetching tests:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to load tests';
         toast.error(errorMessage);
+        setTests([]); // Ensure tests is always an array
       } finally {
         setLoading(false);
       }
@@ -40,7 +66,10 @@ export default function Practice() {
     fetchTests();
   }, []);
   
-  const filteredAndSortedTests = tests
+  // Ensure tests is an array before filtering
+  const testsArray = Array.isArray(tests) ? tests : [];
+  
+  const filteredAndSortedTests = testsArray
     .filter(test => {
       // Search filter
       const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase());

@@ -10,6 +10,7 @@ import {
 import { UserIcon } from '@heroicons/react/24/outline';
 import { teacherNavItems } from './teacherNavConfig';
 import SessionMonitor from '@/app/components/auth/SessionMonitor';
+import { useUser } from '@/app/hooks/useUser';
 
 interface TeacherLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ interface TeacherLayoutProps {
 export default function TeacherLayout({ children }: TeacherLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { user, loading } = useUser();
 
   // Using shared navigation config with unified naming
   const navigation = teacherNavItems;
@@ -109,9 +111,19 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
             </button>
             <div className="flex items-center">
               <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <UserIcon className="h-5 w-5 text-gray-500" />
+                {user?.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="h-5 w-5 text-gray-500" />
+                )}
               </div>
-              <span className="ml-2 text-gray-700 font-medium">Teacher Name</span>
+              <span className="ml-2 text-gray-700 font-medium">
+                {loading ? 'Loading...' : user?.name || 'User'}
+              </span>
             </div>
           </div>
         </header>

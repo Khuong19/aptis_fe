@@ -21,9 +21,12 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
       {showImageColumn && (
         <div className="hidden md:flex md:w-1/2 bg-primary p-10 flex-col justify-center items-center text-white">
           <div className="mb-8">
-            {/* Placeholder for logo */}
-            <div className="w-40 h-40 bg-white/20 rounded-full flex items-center justify-center">
-              <h1 className="text-3xl font-bold">LOGO</h1>
+            {/* APTIS Logo */}
+            <div className="text-center">
+              <h1 className="text-6xl font-bold tracking-wider text-white drop-shadow-lg">
+                APTIS
+              </h1>
+              <div className="w-24 h-1 bg-white/60 mx-auto mt-2 rounded-full"></div>
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-4">Learning APTIS Platform</h1>
