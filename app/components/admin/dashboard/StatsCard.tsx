@@ -58,7 +58,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, change, icon }) => 
               change > 0 ? 'text-green-600' : 'text-red-600'
             }`}
           >
-            {Math.abs(change)}% so với tuần trước
+            {Math.abs(change)}% compared to last week
           </span>
         </div>
       )}

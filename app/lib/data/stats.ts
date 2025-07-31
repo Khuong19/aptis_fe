@@ -8,25 +8,25 @@ export const getStatsCards = (): StatsCard[] => {
 
   return [
     {
-      title: 'Tổng số người dùng',
+      title: 'Total Users',
       value: userStats.total,
       change: 12,
       icon: 'users'
     },
     {
-      title: 'Người dùng hoạt động',
+      title: 'Active Users',
       value: userStats.active,
       change: 8,
       icon: 'user-circle'
     },
     {
-      title: 'Bài kiểm tra',
+      title: 'Tests',
       value: testStats.total,
       change: 5,
       icon: 'clipboard'
     },
     {
-      title: 'Đăng nhập gần đây',
+      title: 'Recent Logins',
       value: userStats.recentLogins,
       change: -3,
       icon: 'login'
@@ -38,10 +38,10 @@ export const getUserRoleChartData = (): ChartData => {
   const userStats = getUserStats();
   
   return {
-    labels: ['Học viên', 'Giáo viên'],
+    labels: ['Students', 'Teachers'],
     datasets: [
       {
-        label: 'Phân bố người dùng theo vai trò',
+        label: 'User Distribution by Role',
         data: [userStats.students, userStats.teachers],
         backgroundColor: ['#152C61', '#AC292D'],
         borderWidth: 0,
@@ -54,10 +54,10 @@ export const getTestStatusChartData = (): ChartData => {
   const testStats = getTestStats();
   
   return {
-    labels: ['Đã xuất bản', 'Đang soạn thảo'],
+    labels: ['Published', 'Draft'],
     datasets: [
       {
-        label: 'Trạng thái bài kiểm tra',
+        label: 'Test Status',
         data: [testStats.published, testStats.draft],
         backgroundColor: ['#4CAF50', '#FFA000'],
         borderWidth: 0,

@@ -19,7 +19,12 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   const [isTestComplete, setIsTestComplete] = useState(false);
   const [startTime] = useState<number>(Date.now());
   
-  const questionSets = test.questionSets || [];
+  // Process and normalize questionSets from the test data
+  const questionSets = test.data?.questionSets || test.questionSets || [];
+  
+  // Debug data structure
+  console.log('Test data structure:', test);
+  console.log('Question sets:', questionSets);
   const totalParts = questionSets.length;
   const currentQuestionSet = questionSets[currentPartIndex];
 
@@ -318,8 +323,16 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   };
 
   const renderCurrentPart = () => {
-    if (!currentQuestionSet) return <div className="flex items-center justify-center h-64"><p className="text-gray-500">No part available</p></div>;
-    switch (currentQuestionSet.part) {
+    console.log('Current question set:', currentQuestionSet);
+    
+    if (!currentQuestionSet) {
+      return <div className="flex items-center justify-center h-64"><p className="text-gray-500">No part available</p></div>;
+    }
+    
+    // Handle different data structures
+    const part = currentQuestionSet.part || parseInt(currentQuestionSet.id?.split('-')[2]) || 0;
+    
+    switch (part) {
       case 1:
         return renderReadingPart1(currentQuestionSet);
       case 2:

@@ -132,9 +132,9 @@ export class LearnerTestsService {
 
   static async saveTestProgress(testId: string, progress: any): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/tests/${testId}/progress`, {
+      const response = await fetch(`${API_BASE_URL}/learner/tests/${testId}/progress`, {
         method: 'POST',
-        headers: {
+        headers: {  
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },

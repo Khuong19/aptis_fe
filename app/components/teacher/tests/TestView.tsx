@@ -7,7 +7,7 @@ interface TestViewProps {
   test: any;
 }
 
-const DEFAULT_DURATION = 35 * 60; // 35 phút, đơn vị giây
+const DEFAULT_DURATION = 35 * 60; 
 
 const TestView: React.FC<TestViewProps> = ({ test }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -79,9 +79,9 @@ const TestView: React.FC<TestViewProps> = ({ test }) => {
     while ((match = gapRegex.exec(passage)) !== null) {
       const start = match.index;
       const end = gapRegex.lastIndex;
-      // Thêm text trước gap
+
       elements.push(<span key={`text-${gapCount}`}>{passage.slice(lastIndex, start)}</span>);
-      // Thêm dropdown tại vị trí gap
+
       const gapIdx = parseInt(match[1], 10) - 1;
       const question = questions[gapIdx];
       elements.push(
@@ -113,7 +113,7 @@ const TestView: React.FC<TestViewProps> = ({ test }) => {
       lastIndex = end;
       gapCount++;
     }
-    // Thêm phần còn lại của passage
+
     elements.push(<span key="text-last">{passage.slice(lastIndex)}</span>);
 
     return (
@@ -171,7 +171,6 @@ const TestView: React.FC<TestViewProps> = ({ test }) => {
     const passages = questionSet.passages || [];
     const questions = questionSet.questions || [];
 
-    // Lấy danh sách person (A, B, C, D)
     const personList = passages.map((p: any) => ({
       key: p.person || p.id,
       label: `Person ${p.person || p.id}`,

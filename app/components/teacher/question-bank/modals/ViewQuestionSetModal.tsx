@@ -1,4 +1,4 @@
-'use client';
+   'use client';
 
 import { QuestionSet } from '@/app/types/question-bank';
 import {
@@ -120,8 +120,8 @@ const parsePassageText = (passageText: any): any[] => {
 };
 
 const ReadingPart1View = ({ questionSet }: { questionSet: QuestionSet }) => {
-  // Extract passage from questions[0].passage since backend stores it there, with fallback
-  const passageText = questionSet?.questions?.[0]?.passage || questionSet?.passageText || '';
+  // Use passageText from questionSet directly, as it's defined in the QuestionSet interface
+  const passageText = questionSet?.passageText || questionSet?.passage || '';
 
   return (
     <div className="space-y-6">
@@ -173,7 +173,20 @@ const ReadingPart1View = ({ questionSet }: { questionSet: QuestionSet }) => {
                       const gapIdx = parseInt(match[1], 10) - 1;
                       const question = questionSet.questions?.[gapIdx];
                       const selectedAnswer = question?.answer || '';
-                      const selectedOption = selectedAnswer ? question?.options?.[selectedAnswer] : '';
+                      
+                      // Handle the union type safely with type checking
+                      let selectedOption = '';
+                      if (question?.options && selectedAnswer) {
+                        if (Array.isArray(question.options)) {
+                          // Handle QuestionOption[] case
+                          const optionIndex = parseInt(selectedAnswer) - 1;
+                          selectedOption = optionIndex >= 0 && optionIndex < question.options.length ? 
+                            question.options[optionIndex].text : '';
+                        } else {
+                          // Handle object with letter keys case
+                          selectedOption = question.options[selectedAnswer as keyof typeof question.options] || '';
+                        }
+                      }
                       
                       elements.push(
                         <select

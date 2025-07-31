@@ -18,8 +18,8 @@ const UserRoleChart: React.FC<UserRoleChartProps> = ({ chartData }) => {
   return (
     <div className="bg-white rounded-lg shadow p-5">
       <div className="mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Phân bố người dùng</h3>
-        <p className="text-sm text-gray-500">Phân bố người dùng theo vai trò</p>
+        <h3 className="text-lg font-medium text-gray-900">User Distribution</h3>
+        <p className="text-sm text-gray-500">User distribution by role</p>
       </div>
       
       <div className="h-64 flex items-center justify-center">
