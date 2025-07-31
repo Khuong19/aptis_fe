@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/a
 export class LearnerTestsService {
   static async getTestById(id: string): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/tests/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/learner/tests/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -26,7 +26,7 @@ export class LearnerTestsService {
 
   static async saveTestResult(testResult: TestResult): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/test-results`, {
+      const response = await fetch(`${API_BASE_URL}/learner/${testResult.testId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export class LearnerTestsService {
 
   static async getAvailableTests(): Promise<any[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/tests/available`, {
+      const response = await fetch(`${API_BASE_URL}/learner/tests`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ export class LearnerTestsService {
 
   static async getTestProgress(testId: string): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/tests/${testId}/progress`, {
+      const response = await fetch(`${API_BASE_URL}/learner/tests/${testId}/progress`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
