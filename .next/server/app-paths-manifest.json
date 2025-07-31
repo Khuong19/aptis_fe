@@ -1,9 +1,0 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/learner/dashboard/page": "app/learner/dashboard/page.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
-  "/teacher/dashboard/page": "app/teacher/dashboard/page.js",
-  "/learner/practice/page": "app/learner/practice/page.js",
-  "/learner/profile/page": "app/learner/profile/page.js",
-  "/learner/practice/[id]/page": "app/learner/practice/[id]/page.js"
-}
