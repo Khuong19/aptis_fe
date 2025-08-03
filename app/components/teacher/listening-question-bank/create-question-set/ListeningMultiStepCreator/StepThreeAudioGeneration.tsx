@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { StepData } from './index';
 import { useApiKeys } from '@/app/hooks/useApiKeys';
+import { getListeningAudioUrl, getListeningFolderName } from '@/app/lib/utils/audioUtils';
 
 interface StepThreeAudioGenerationProps {
   stepData: StepData;
@@ -59,7 +60,7 @@ export default function StepThreeAudioGeneration({
   };
 
   const getAudioItemsForPart = () => {
-    const part = stepData.part;
+    const part = String(stepData.part);
     const items = [];
     
     switch (part) {
@@ -79,8 +80,19 @@ export default function StepThreeAudioGeneration({
         break;
         
       case '2':
-        // Monologue
-        if (stepData.monologue) {
+        // Monologue - Generate audio for each segment
+        if (stepData.monologue && stepData.monologue.segments) {
+          stepData.monologue.segments.forEach((segment: any, index: number) => {
+            items.push({
+              id: `segment-${index}`,
+              label: `${segment.speaker || `Person ${index + 1}`}`,
+              text: segment.text,
+              voiceKey: 'monologue',
+              type: 'monologue-segment'
+            });
+          });
+        } else if (stepData.monologue) {
+          // Fallback to original monologue text
           items.push({
             id: 'monologue',
             label: 'Monologue',
@@ -94,7 +106,7 @@ export default function StepThreeAudioGeneration({
       case '3':
         // Discussion speakers
         if (stepData.discussion) {
-          stepData.discussion.forEach((speaker, index) => {
+          stepData.discussion.forEach((speaker: any, index: number) => {
             items.push({
               id: `speaker-${index}`,
               label: `Speaker ${index + 1}`,
@@ -109,7 +121,7 @@ export default function StepThreeAudioGeneration({
       case '4':
         // Lectures
         if (stepData.lectures) {
-          stepData.lectures.forEach((lecture, index) => {
+          stepData.lectures.forEach((lecture: any, index: number) => {
             items.push({
               id: `lecture-${index}`,
               label: `Lecture ${index + 1}`,
@@ -143,20 +155,48 @@ export default function StepThreeAudioGeneration({
       const audioFiles = [];
       const audioErrors = [];
       
+      // Generate unique folder name for this question set
+      const timestamp = Date.now();
+      const folderName = getListeningFolderName(stepData.part, timestamp);
+      
       for (let i = 0; i < audioItems.length; i++) {
         const item = audioItems[i];
         setCurrentGeneratingItem(item.label);
         setGenerationProgress(((i + 1) / audioItems.length) * 100);
         
         try {
-          // Simulate audio generation API call
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Call API to generate actual audio file
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/generate-single-audio`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text: item.text,
+              voice: stepData.voicePreferences[item.voiceKey] || 'auto',
+              fileName: `${item.id}.mp3`,
+              folderName: folderName,
+              part: stepData.part,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
           
-          // Mock audio URL - in real implementation, this would be the actual audio file URL
-          const audioUrl = `https://example.com/audio/${item.id}.mp3`;
-          audioFiles.push(audioUrl);
+          if (result.success) {
+            // Generate audio URL based on upload/listening folder structure
+            const audioUrl = getListeningAudioUrl(folderName, `${item.id}.mp3`);
+            audioFiles.push(audioUrl);
+            console.log(`Generated audio for ${item.label}:`, audioUrl);
+          } else {
+            throw new Error(result.error || 'Audio generation failed');
+          }
           
         } catch (error) {
+          console.error(`Failed to generate audio for ${item.label}:`, error);
           audioErrors.push(`Failed to generate audio for ${item.label}: ${error}`);
         }
       }
@@ -165,6 +205,7 @@ export default function StepThreeAudioGeneration({
         audioFiles,
         audioErrors,
         audioGenerated: true,
+        audioFolder: folderName, // Store folder name for reference
       };
       
       updateStepData(updatedData);
@@ -216,7 +257,7 @@ export default function StepThreeAudioGeneration({
   };
 
   const renderVoiceSettings = () => {
-    const part = stepData.part;
+    const part = String(stepData.part);
     
     switch (part) {
       case '1':
@@ -263,23 +304,33 @@ export default function StepThreeAudioGeneration({
         
       case '2':
         return (
-          <div>
-            <Label className="text-sm font-medium">Monologue Voice</Label>
-            <Select
-              value={stepData.voicePreferences.monologue || ''}
-              onValueChange={(value) => handleVoiceChange('monologue', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Auto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Auto</SelectItem>
-                <SelectItem value="Aria">Aria (Female)</SelectItem>
-                <SelectItem value="Sarah">Sarah (Female)</SelectItem>
-                <SelectItem value="Drew">Drew (Male)</SelectItem>
-                <SelectItem value="Paul">Paul (Male)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Monologue Voice</Label>
+              <Select
+                value={stepData.voicePreferences.monologue || ''}
+                onValueChange={(value) => handleVoiceChange('monologue', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Auto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Auto</SelectItem>
+                  <SelectItem value="Aria">Aria (Female)</SelectItem>
+                  <SelectItem value="Sarah">Sarah (Female)</SelectItem>
+                  <SelectItem value="Drew">Drew (Male)</SelectItem>
+                  <SelectItem value="Paul">Paul (Male)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {stepData.monologue?.segments && stepData.monologue.segments.length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-md">
+                <p className="text-sm text-blue-700">
+                  <strong>Note:</strong> Audio will be generated for each segment ({stepData.monologue.segments.length} segments total)
+                </p>
+              </div>
+            )}
           </div>
         );
         
@@ -368,21 +419,7 @@ export default function StepThreeAudioGeneration({
     }
   };
 
-  if (!stepData.textReviewed) {
-    return (
-      <CardContent className="p-6">
-        <div className="text-center space-y-4">
-          <div className="p-4 bg-amber-50 rounded-lg">
-            <AlertCircle className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-            <h3 className="font-medium text-amber-800">Text Review Required</h3>
-            <p className="text-sm text-amber-700">
-              Please complete Step 2 (Review & Edit) before proceeding to audio generation.
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    );
-  }
+     // Always show Step 3 content (removed textReviewed check)
 
   return (
     <CardContent className="p-6">

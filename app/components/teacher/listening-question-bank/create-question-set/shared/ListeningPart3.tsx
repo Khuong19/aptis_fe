@@ -17,9 +17,9 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
   const [passageText, setPassageText] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isQuestionAudioPlaying, setIsQuestionAudioPlaying] = useState(false);
+  const [showJsonData, setShowJsonData] = useState(false);
 
-  // --- AUDIO PLAYER FOR QUESTIONS SECTION ---
-  // Ưu tiên lấy audioUrl từ speakers, nếu không có thì lấy từ audioFiles[0]
+
   const audioUrl = (previewData?.speakers && Array.isArray(previewData.speakers) && previewData.speakers[0]?.audioUrl) || 
                    (Array.isArray(previewData?.audioFiles) ? previewData.audioFiles[0] : undefined);
   const audioRef = React.useRef<HTMLAudioElement>(null);
@@ -48,9 +48,20 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
     };
   }, []);
 
-  // Extract passages and questions
-  const passages = previewData?.passages || [];
+  // Extract discussion and questions from the new structure
+  const discussion = previewData?.discussion || [];
   const questions = previewData?.questions || [];
+  const title = previewData?.title || 'Listening Part 3';
+  const description = previewData?.description || 'Listen to the discussion and answer the questions below.';
+
+  // Group discussion by speaker for better display
+  const discussionBySpeaker = discussion.reduce((acc: any, item: any) => {
+    if (!acc[item.speaker]) {
+      acc[item.speaker] = [];
+    }
+    acc[item.speaker].push(item.text);
+    return acc;
+  }, {});
 
   const handleStartEditing = (idx: number) => {
     setEditingQuestionIndex(idx);
@@ -81,15 +92,8 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
     toast.success(isPlaying ? 'Audio paused' : 'Audio playing');
   };
 
-  // --- Giọng đọc cho passage: chỉ cho chọn men hoặc woman ---
-  // Nếu passages có trường voice/gender thì cho phép chỉnh, nếu không thì bỏ qua
-  const handlePassageVoiceChange = (idx: number, value: string) => {
-    if (!onEdit) return;
-    const updatedPassages = passages.map((p: any, i: number) =>
-      i === idx ? { ...p, voice: value } : p
-    );
-    onEdit({ ...previewData, passages: updatedPassages });
-  };
+  // --- Voice selection for passages ---
+  // This is kept for backward compatibility but not used in the new structure
   const voiceOptions = [
     { value: 'men', label: 'Men' },
     { value: 'woman', label: 'Woman' },
@@ -98,43 +102,79 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
 
   return (
     <div className="space-y-6">
-      {/* Audio Text Section */}
-      {previewData?.discussion && Array.isArray(previewData.discussion) && 
-       previewData.discussion.some((disc: any) => disc.text) && (
+      {/* JSON Data Toggle */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Debug Information</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowJsonData(!showJsonData)}
+              className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {showJsonData ? 'Hide' : 'Show'} JSON Data
+            </Button>
+          </div>
+        </CardHeader>
+        {showJsonData && (
+          <CardContent>
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h4 className="font-medium mb-2">Raw Preview Data:</h4>
+              <pre className="text-xs overflow-auto max-h-96 bg-white p-3 rounded border">
+                {JSON.stringify(previewData, null, 2)}
+              </pre>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Title and Description */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-700">{description}</p>
+        </CardContent>
+      </Card>
+
+      {/* Discussion Section */}
+      {Object.keys(discussionBySpeaker).length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Audio Text</CardTitle>
+            <CardTitle className="text-lg font-semibold">Discussion</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {previewData.discussion.map((disc: any, index: number) => 
-                disc.text ? (
-                  <div key={index} className="bg-gray-50 p-4 rounded-md">
-                    <div className="text-sm font-medium text-gray-800 mb-2">
-                      Discussion {index + 1}
-                    </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">
-                      {disc.text}
-                    </p>
+              {Object.entries(discussionBySpeaker).map(([speaker, texts]: [string, any]) => (
+                <div key={speaker} className="bg-gray-50 p-4 rounded-md">
+                  <div className="font-medium text-blue-700 mb-2">{speaker}</div>
+                  <div className="space-y-2">
+                    {texts.map((text: string, idx: number) => (
+                      <p key={idx} className="text-gray-700 pl-4 border-l-2 border-blue-200">
+                        {text}
+                      </p>
+                    ))}
                   </div>
-                ) : null
-              )}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Audio Passages Section */}
+      {/* Audio Player Section */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Listening Passages</CardTitle>
+            <CardTitle className="text-lg font-semibold">Audio Player</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={togglePlayback}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 {isPlaying ? 'Pause' : 'Play'}
@@ -143,46 +183,21 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {/* AUDIO PLAYER FOR QUESTIONS SECTION */}
-            {audioUrl && (
-              <div className="mb-4 flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePlayPauseAudio}
-                  className="flex items-center gap-1"
-                >
-                  {isQuestionAudioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {isQuestionAudioPlaying ? 'Pause' : 'Play'}
-                </Button>
-                <audio ref={audioRef} src={audioUrl} preload="auto" />
-                <span className="text-gray-500 text-sm">Audio for this part</span>
-              </div>
-            )}
-            {passages.map((passage: any, index: number) => (
-              <div key={passage.id || index} className="p-4 border rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  Passage {index + 1} - {passage.person || `Person ${index + 1}`}
-                </h4>
-                <p className="text-gray-700 mb-2">{passage.text}</p>
-                {/* Chọn giọng đọc cho passage */}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-gray-600">Voice:</span>
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={passage.voice || ''}
-                    onChange={e => handlePassageVoiceChange(index, e.target.value)}
-                  >
-                    <option value="">-- Select --</option>
-                    {voiceOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
+          {audioUrl && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePlayPauseAudio}
+                className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isQuestionAudioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isQuestionAudioPlaying ? 'Pause' : 'Play'}
+              </Button>
+              <audio ref={audioRef} src={audioUrl} preload="auto" />
+              <span className="text-gray-500 text-sm">Audio for this part</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -192,33 +207,53 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
           <CardTitle className="text-lg font-semibold">Questions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 text-base text-gray-800">
-            Listen to two teachers discussing potential modifications to their language school. Read the statements and decide whose opinion matches the best: the man's, the woman's or both.
-          </div>
           <div className="mb-3 font-medium text-gray-700">Who expresses which opinion?</div>
           
-          <div className="space-y-3">
-            {questions.map((question: any, index: number) => (
-              <div key={question.id || index} className="flex items-center gap-4">
-                <span className="font-medium min-w-[60px]">{index + 1}.{index + 1}</span>
-                <span className="flex-1 text-gray-700">{question.text}</span>
-                <select
-                  className="border rounded px-3 py-2 bg-white min-w-[100px]"
-                  value={question.correctPerson || question.answer || ''}
-                  onChange={(e) => {
-                    if (!onEdit) return;
-                    const updatedQuestions = [...questions];
-                    updatedQuestions[index] = { ...question, correctPerson: e.target.value, answer: e.target.value };
-                    onEdit({ ...previewData, questions: updatedQuestions });
-                  }}
-                >
-                  <option value="">-- Select --</option>
-                  <option value="woman">Woman</option>
-                  <option value="man">Man</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
-            ))}
+          <div className="space-y-6">
+            {questions.map((question: any, index: number) => {
+              const options = question.options || {
+                A: 'Man',
+                B: 'Woman',
+                C: 'Both'
+              };
+              
+              return (
+                <div key={question.id || index} className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="font-medium mt-1">{index + 1}.</span>
+                    <div className="flex-1">
+                      <p className="text-gray-800 mb-2">{question.text}</p>
+                      <div className="space-y-2 mt-2">
+                        {Object.entries(options).map(([key, optionValue]) => {
+                          const isCorrect = question.answer === key;
+                          return (
+                            <div 
+                              key={key}
+                              className={`flex items-center p-2 rounded ${
+                                isCorrect ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+                              }`}
+                            >
+                              <span className="font-medium w-6">{key}.</span>
+                              <span className="flex-1">{String(optionValue)}</span>
+                              {isCorrect && (
+                                <span className="text-green-500 ml-2">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {question.correctPerson && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          Correct answer: <span className="font-medium">{question.correctPerson}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

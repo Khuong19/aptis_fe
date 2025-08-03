@@ -164,11 +164,13 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
       if (isEdit && initialData?.id) {
         console.log('Updating existing test');
         const updated = await TestsService.updateTest(initialData.id, payload);
+        showToast('Test updated successfully', 'success');
         onSuccess(updated);
       } else {
         console.log('Creating new test');
         const created = await TestsService.createTest(payload);
         console.log('Test created successfully:', created);
+        showToast('Test created successfully', 'success');
         onSuccess(created);
       }
     } catch (error) {
@@ -278,6 +280,7 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
                 handleCreateTest();
               }}
               disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1}
+              className="disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isEdit ? 'Save Changes' : 'Create Test'}
             </Button>

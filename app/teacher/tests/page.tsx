@@ -6,7 +6,8 @@ import {
   MagnifyingGlassIcon, 
   ChevronDownIcon,
   BookOpenIcon,
-  SpeakerWaveIcon
+  SpeakerWaveIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import TeacherLayout from '@/app/components/teacher/layout/TeacherLayout';
@@ -105,6 +106,22 @@ export default function TestsPage() {
     }
   };
 
+  const handleDeleteTest = async (test: TestItem) => {
+    if (!confirm(`Are you sure you want to delete "${test.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await TestsService.deleteTest(test.id);
+      // Remove from local state
+      setTests(prev => prev.filter(t => t.id !== test.id));
+      showToast('Test deleted successfully', 'success');
+    } catch (error) {
+      console.error('Failed to delete test:', error);
+      showToast('Failed to delete test', 'error');
+    }
+  };
+
   return (
     <TeacherLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -196,7 +213,7 @@ export default function TestsPage() {
                 </Link>
                 <button
                   onClick={() => handleToggleStatus(test)}
-                  className={`inline-flex items-center px-3 py-1.5 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#152C61] ${
+                  className={`inline-flex items-center px-3 py-1.5 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#152C61] disabled:opacity-50 disabled:cursor-not-allowed ${
                     test.status === 'Draft'
                       ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
                       : 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
@@ -204,6 +221,15 @@ export default function TestsPage() {
                 >
                   {test.status === 'Draft' ? 'Publish' : 'Unpublish'}
                 </button>
+                {(test.status === 'Draft' || test.status === 'Archived') && (
+                  <button
+                    onClick={() => handleDeleteTest(test)}
+                    className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TrashIcon className="h-4 w-4 mr-1" />
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           </div>

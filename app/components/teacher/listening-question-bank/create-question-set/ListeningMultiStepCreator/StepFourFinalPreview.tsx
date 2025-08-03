@@ -34,8 +34,75 @@ import ListeningPart2 from '../shared/ListeningPart2';
 import ListeningPart3 from '../shared/ListeningPart3';
 import ListeningPart4 from '../shared/ListeningPart4';
 
+// Define interfaces for the expected data structures
+interface ConversationSegment {
+  id: string;
+  text: string;
+  speaker: string;
+  order: number;
+}
+
+interface ConversationQuestion {
+  id: string;
+  text: string;
+  options: Record<string, string>;
+  answer: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  context: string;
+  difficulty: string;
+  segments: ConversationSegment[];
+  question: ConversationQuestion;
+}
+
+interface MonologueSegment {
+  id: string;
+  text: string;
+  speaker: string;
+  order: number;
+}
+
+interface Monologue {
+  id: string;
+  title: string;
+  topic: string;
+  introduction: string;
+  options: string[];
+  segments: MonologueSegment[];
+}
+
+interface DiscussionSegment {
+  speaker: string;
+  text: string;
+}
+
+interface LectureQuestion {
+  id: string;
+  text: string;
+  options: Record<string, string>;
+  answer: string;
+}
+
+interface Lecture {
+  id: string;
+  topic: string;
+  speaker: string;
+  audioText: string;
+  questions: LectureQuestion[];
+  audioUrl?: string;
+}
+
+// Extend the StepData interface to include the missing fields
+type ExtendedStepData = StepData & {
+  description?: string;
+  level?: 'A2' | 'A2+' | 'B1' | 'B2' | 'C1' | 'mixed';
+};
+
 interface StepFourFinalPreviewProps {
-  stepData: StepData;
+  stepData: ExtendedStepData;
   updateStepData: (updates: Partial<StepData>) => void;
   onComplete: (data: Partial<StepData>) => void;
   onSuccess: (generatedSets: QuestionSet[]) => void;
@@ -50,49 +117,122 @@ export default function StepFourFinalPreview({
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('content');
 
-  // Prepare preview data for the listening components
-  const previewData = {
-    questions: stepData.generatedQuestions,
-    passage: stepData.passageText,
-    passageText: stepData.passageText,
-    passages: stepData.passages,
-    title: stepData.passageTitle,
-    part: parseInt(stepData.part),
-    conversations: stepData.conversations,
-    monologue: stepData.monologue,
-    speakers: stepData.speakers,
-    discussion: stepData.discussion,
-    lectures: stepData.lectures,
-    audioFiles: stepData.audioFiles,
+  // Prepare preview data for the listening components based on the part
+  const getPreviewData = () => {
+    const baseData = {
+      title: stepData.passageTitle || `Listening Part ${stepData.part}`,
+      description: stepData.description || `Listening Part ${stepData.part} exercise`,
+      type: 'listening' as const,
+      part: stepData.part,
+      level: stepData.level || 'B1' as const,
+      audioFiles: stepData.audioFiles || [],
+      passageText: stepData.passageText || '',
+      passage: stepData.passageText || '',
+      // Add default empty arrays for all possible part-specific fields
+      conversations: [] as Conversation[],
+      monologue: undefined as Monologue | undefined,
+      discussion: [] as DiscussionSegment[],
+      speakers: [] as string[],
+      lectures: [] as Lecture[],
+      questions: stepData.questions || stepData.generatedQuestions || []
+    };
+
+    switch (stepData.part) {
+      case 1:
+        return {
+          ...baseData,
+          conversations: stepData.conversations || [],
+          questions: stepData.questions || stepData.generatedQuestions || [],
+        };
+      case 2:
+        return {
+          ...baseData,
+          monologue: stepData.monologue || {
+            id: 'monologue-1',
+            title: `Listening Part 2 - ${stepData.passageTitle || 'Topic'}`,
+            topic: stepData.passageTitle || 'Topic',
+            introduction: stepData.monologue?.introduction || '',
+            options: stepData.monologue?.options || [],
+            segments: stepData.monologue?.segments || []
+          },
+          questions: stepData.questions || stepData.generatedQuestions || []
+        };
+      case 3:
+        return {
+          ...baseData,
+          discussion: stepData.discussion || [],
+          questions: stepData.questions || stepData.generatedQuestions || []
+        };
+      case 4:
+        return {
+          ...baseData,
+          lectures: stepData.lectures || []
+        };
+      default:
+        return baseData;
+    }
   };
+
+  const previewData = getPreviewData();
 
   const handleSaveToQuestionBank = async () => {
     setIsSaving(true);
     
     try {
-      // Create question set object
+      // Create question set object based on the part
+      const now = new Date().toISOString();
+      
+      // Add part-specific data first
+      const partSpecificData: Partial<QuestionSet> = {};
+      
+      switch (stepData.part) {
+        case 1:
+          partSpecificData.conversations = stepData.conversations || [];
+          break;
+        case 2:
+          partSpecificData.monologue = stepData.monologue;
+          break;
+        case 3:
+          partSpecificData.discussion = stepData.discussion || [];
+          partSpecificData.speakers = stepData.speakers || [];
+          break;
+        case 4:
+          partSpecificData.lectures = stepData.lectures || [];
+          break;
+      }
+
+      // Create the question set with all required fields
       const questionSet: QuestionSet = {
-        id: `listening-${Date.now()}`,
-        title: stepData.passageTitle || `Listening Part ${stepData.part} Questions`,
-        part: parseInt(stepData.part),
-        level: 'B1', // Default level for AI-generated content
+        // Base fields
+        title: stepData.passageTitle || `Listening Part ${stepData.part} - ${stepData.passageTitle || 'Untitled'}`,
+        part: stepData.part,
+        level: stepData.level || 'B1',
         type: 'listening',
         source: 'ai-generated',
-        questions: stepData.generatedQuestions,
-        authorId: 'current-user', // TODO: Get from auth context
-        authorName: 'Current User', // TODO: Get from auth context
-        passageText: stepData.passageText,
-        passages: stepData.passages,
-        conversations: stepData.conversations,
-        monologue: stepData.monologue,
-        speakers: stepData.speakers,
-        discussion: stepData.discussion,
-        lectures: stepData.lectures,
-        audioFiles: stepData.audioFiles,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        //Get from auth context
+        authorId: 'current-user', 
+        authorName: 'Current User', 
         isPublic: false,
+        questions: stepData.questions || stepData.generatedQuestions || [],
+        audioFiles: stepData.audioFiles || [],
+        id: `listening-${Date.now()}`,
+        // Initialize part-specific fields to empty arrays
+        conversations: [],
+        discussion: [],
+        speakers: [],
+        lectures: [],
+        monologue: undefined,
+        // Overwrite with actual part-specific data
+        ...partSpecificData,
+        // Dates
+        createdAt: now,
+        updatedAt: now
       };
+
+      // Add description if available
+      if (stepData.description) {
+        (questionSet as any).description = stepData.description;
+      }
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -102,6 +242,7 @@ export default function StepFourFinalPreview({
       };
       
       updateStepData(updatedData);
+      console.log('Frontend: Final QuestionSet Payload:', JSON.stringify(questionSet, null, 2));
       onComplete(updatedData);
       onSuccess([questionSet]);
       
@@ -114,8 +255,8 @@ export default function StepFourFinalPreview({
 
   const calculateEstimatedDuration = (): number => {
     // Estimate based on content length and number of questions
-    const baseTime = stepData.part === '1' ? 3 : stepData.part === '2' ? 5 : stepData.part === '3' ? 4 : 6;
-    const questionTime = stepData.generatedQuestions.length * 0.5;
+    const baseTime = stepData.part === 1 ? 3 : stepData.part === 2 ? 5 : stepData.part === 3 ? 4 : 6;
+    const questionTime = (stepData.questions || stepData.generatedQuestions || []).length * 0.5;
     const audioTime = stepData.audioFiles.length * 1.5;
     return Math.ceil(baseTime + questionTime + audioTime);
   };
@@ -124,13 +265,13 @@ export default function StepFourFinalPreview({
     const part = stepData.part;
     
     switch (part) {
-      case '1':
+      case 1:
         return <ListeningPart1 previewData={previewData} onEdit={() => {}} />;
-      case '2':
+      case 2:
         return <ListeningPart2 previewData={previewData} onEdit={() => {}} />;
-      case '3':
+      case 3:
         return <ListeningPart3 previewData={previewData} onEdit={() => {}} />;
-      case '4':
+      case 4:
         return <ListeningPart4 previewData={previewData} onEdit={() => {}} />;
       default:
         return null;
@@ -169,23 +310,7 @@ export default function StepFourFinalPreview({
             </div>
           </div>
           
-          <Button
-            onClick={handleSaveToQuestionBank}
-            disabled={isSaving}
-            className="bg-emerald-600 hover:bg-emerald-700 flex items-center space-x-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Save to Question Bank</span>
-              </>
-            )}
-          </Button>
+
         </div>
 
         {/* Summary Card */}
@@ -210,7 +335,7 @@ export default function StepFourFinalPreview({
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
                 <div>
                   <p className="text-sm text-emerald-700">Questions</p>
-                  <p className="font-medium text-emerald-800">{stepData.generatedQuestions.length} items</p>
+                  <p className="font-medium text-emerald-800">{(stepData.questions || stepData.generatedQuestions || []).length} items</p>
                 </div>
               </div>
               
@@ -266,38 +391,52 @@ export default function StepFourFinalPreview({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {stepData.audioFiles.map((audioUrl, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Audio {index + 1}</p>
-                        <p className="text-sm text-gray-600">
-                          {stepData.part === '1' ? `Conversation ${index + 1}` :
-                           stepData.part === '2' ? 'Monologue' :
-                           stepData.part === '3' ? `Speaker ${index + 1}` :
-                           `Lecture ${index + 1}`}
-                        </p>
+                  {stepData.audioFiles.map((audioUrl, index) => {
+                    // Get the appropriate label based on part and index
+                    let audioLabel = '';
+                    if (stepData.part === 1) {
+                      audioLabel = `Conversation ${index + 1}`;
+                    } else if (stepData.part === 2) {
+                      if (stepData.monologue?.segments && stepData.monologue.segments[index]) {
+                        audioLabel = stepData.monologue.segments[index].speaker || `Person ${index + 1}`;
+                      } else {
+                        audioLabel = 'Monologue';
+                      }
+                    } else if (stepData.part === 3) {
+                      audioLabel = `Speaker ${index + 1}`;
+                    } else if (stepData.part === 4) {
+                      audioLabel = `Lecture ${index + 1}`;
+                    }
+
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">Audio {index + 1}</p>
+                          <p className="text-sm text-gray-600">{audioLabel}</p>
+                          <p className="text-xs text-gray-500">{audioUrl}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const audio = new Audio(audioUrl);
+                              audio.play();
+                            }}
+                          >
+                            <Play className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(audioUrl, '_blank')}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const audio = new Audio(audioUrl);
-                            audio.play();
-                          }}
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(audioUrl, '_blank')}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -367,7 +506,7 @@ export default function StepFourFinalPreview({
             <div className="space-y-2">
               <p className="font-medium">Question Set Ready!</p>
               <p className="text-sm">
-                Your listening question set is complete with {stepData.generatedQuestions.length} questions 
+                Your listening question set is complete with {(stepData.questions || stepData.generatedQuestions || []).length} questions 
                 and {stepData.audioFiles.length} audio files. Click "Save to Question Bank" to add it to your collection.
               </p>
             </div>

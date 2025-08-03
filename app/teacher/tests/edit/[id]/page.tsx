@@ -36,7 +36,7 @@ export default function EditTestPage() {
 
   const handleSuccess = (updated: any) => {
     router.push('/teacher/tests');
-    showToast('Test updated successfully', 'success');
+    // Toast message is already handled in the form components
   };
 
   if (isLoading || !testData) {

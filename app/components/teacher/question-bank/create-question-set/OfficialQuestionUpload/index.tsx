@@ -843,7 +843,7 @@ export default function OfficialQuestionUploadForm({ onSuccess }: OfficialQuesti
                   <Button
                     type="submit"
                     disabled={isLoading || !file}
-                    className="flex items-center"
+                    className="flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Parse File
@@ -867,7 +867,7 @@ export default function OfficialQuestionUploadForm({ onSuccess }: OfficialQuesti
                       </p>
                     </div>
                     
-                    <Button onClick={handleUpload} disabled={isLoading}>
+                    <Button onClick={handleUpload} disabled={isLoading} className="disabled:opacity-50 disabled:cursor-not-allowed">
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

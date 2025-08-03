@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 // Import shared types
 import { QuestionSet, Comment } from '@/app/types/question-bank';
 import { mockUser, mockComments } from '@/app/lib/mock-data';
-import { QuestionBankService } from '@/app/lib/api/questionBankService';
+import { ListeningQuestionBankService } from '@/app/lib/api/listeningQuestionBankService';
 
 // Import components
 import ListeningQuestionBankHeader from '../components/ListeningQuestionBankHeader';
@@ -16,7 +16,7 @@ import ListeningQuestionBankModals from '../components/ListeningQuestionBankModa
 
 export default function ListeningQuestionBankManager() {
   // State for tabs
-  const [activeTab, setActiveTab] = useState<'ai' | 'excel' | 'manual' | 'my-sets'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'excel' | 'manual'>('ai');
   
   // State for modals
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
@@ -52,9 +52,7 @@ export default function ListeningQuestionBankManager() {
         setLoading(true);
         setError(null);
         
-        const fetchedQuestionSets = await QuestionBankService.getAllQuestionSets();
-        // Filter for listening questions only
-        const listeningQuestionSets = fetchedQuestionSets.filter(qs => qs.type === 'listening');
+        const listeningQuestionSets = await ListeningQuestionBankService.getAllQuestionSets();
         setQuestionSets(listeningQuestionSets);
         
       } catch (err) {
@@ -98,10 +96,8 @@ export default function ListeningQuestionBankManager() {
   const handleCreateQuestionSet = async (newSet: QuestionSet) => {
     try {
       setError(null);
-      await QuestionBankService.createQuestionSet(newSet);
-      // Sau khi tạo, fetch lại toàn bộ list để tránh duplicate
-      const fetchedQuestionSets = await QuestionBankService.getAllQuestionSets();
-      const listeningQuestionSets = fetchedQuestionSets.filter(qs => qs.type === 'listening');
+      await ListeningQuestionBankService.createQuestionSet(newSet);
+      const listeningQuestionSets = await ListeningQuestionBankService.getAllQuestionSets();
       setQuestionSets(listeningQuestionSets);
       setIsNewModalOpen(false);
     } catch (err) {
@@ -125,7 +121,7 @@ export default function ListeningQuestionBankManager() {
       setError(null);
       
       // Call API to update in database
-      const savedSet = await QuestionBankService.updateQuestionSet(updatedSet.id, updatedSet);
+      const savedSet = await ListeningQuestionBankService.updateQuestionSet(updatedSet.id, updatedSet);
       
       // Update local state with saved data
       setQuestionSets(prev => 
@@ -144,7 +140,7 @@ export default function ListeningQuestionBankManager() {
   const handleDeleteQuestionSet = async (setId: string, source?: string) => {
     try {
       setError(null);
-      await QuestionBankService.deleteQuestionSet(setId, source);
+      await ListeningQuestionBankService.deleteQuestionSet(setId);
       setQuestionSets(prev => prev.filter(qs => qs.id !== setId));
     } catch (err) {
       setError('Cannot delete question set');

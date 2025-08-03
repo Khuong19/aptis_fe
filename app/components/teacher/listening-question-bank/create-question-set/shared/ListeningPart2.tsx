@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/basic';
-import { Edit2, Save, X, Play, Pause } from 'lucide-react';
+import { Edit2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import AudioPlayer from './AudioPlayer';
 
 interface ListeningPart2Props {
   previewData: any;
@@ -15,8 +16,6 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
   const [editingData, setEditingData] = useState<any>(null);
   const [editingPassage, setEditingPassage] = useState(false);
   const [passageText, setPassageText] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
-
 
   let reasons: string[] = [];
   if (previewData?.monologue?.options && Array.isArray(previewData.monologue.options)) {
@@ -24,26 +23,70 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
   } else if (previewData?.monologue?.reasons && Array.isArray(previewData.monologue.reasons)) {
     reasons = previewData.monologue.reasons;
   } else if (previewData?.questions && Array.isArray(previewData.questions)) {
-    reasons = previewData.questions.map((q: any) => q.text || q.reason || q.sentence || '');
+    // Extract sentence text from questions if options not available
+    reasons = previewData.questions.map((q: any) => q.sentence || q.text || q.reason || '');
   }
   reasons = Array.from(new Set(reasons)).filter(r => r && r.trim() !== '');
   
-  // Nếu không có reasons hoặc ít hơn 6, dùng default options
-  if (reasons.length < 6) {
-    reasons = [
-      'dislikes online shopping',
-      'thinks before purchasing', 
-      'spends a lot of money',
-      'is an impulse buyer',
-      'only shops during certain periods',
-      'prefers to shop alone'
-    ];
-  }
   
   const reasonLabels = reasons.map((r, i) => String.fromCharCode(65 + i));
 
-  const numQuestions = 4; // Part 2 luôn có 4 câu hỏi
-  const [selected, setSelected] = useState<(string | undefined)[]>(Array(numQuestions).fill(undefined));
+  // Update numQuestions based on actual questions count
+  const actualQuestionsCount = previewData?.questions?.length || 4;
+  const numQuestions = Math.max(actualQuestionsCount, 4); // Minimum 4 questions
+  const initialSelected = Array(numQuestions).fill(undefined);
+  
+  // Initialize selected answers from previewData.questions
+  if (previewData?.questions) {
+    previewData.questions.forEach((q: any) => {
+      if (q.answer && q.position) {
+        // Find the correct answer text from the options
+        const answerText = q.sentence || q.text;
+        console.log(`ListeningPart2 - question ${q.position}: answerText=${answerText}, answer=${q.answer}`);
+        if (answerText) {
+          initialSelected[q.position - 1] = answerText;
+        } else if (q.answer) {
+          // If we have an answer letter but no text, try to find it in the options
+          const answerIndex = q.answer.charCodeAt(0) - 65; // Convert A->0, B->1, etc.
+          if (reasons[answerIndex]) {
+            initialSelected[q.position - 1] = reasons[answerIndex];
+          }
+        }
+      }
+    });
+  }
+  
+  const [selected, setSelected] = useState<(string | undefined)[]>(initialSelected);
+  
+  // Update selected state when previewData changes (for preview mode)
+  React.useEffect(() => {
+    if (previewData?.questions) {
+      const newSelected = [...initialSelected];
+      let hasChanges = false;
+      
+      previewData.questions.forEach((q: any) => {
+        if (q.answer && q.position) {
+          const answerText = q.sentence || q.text;
+          const position = q.position - 1;
+          
+          if (answerText && newSelected[position] !== answerText) {
+            newSelected[position] = answerText;
+            hasChanges = true;
+          } else if (q.answer) {
+            const answerIndex = q.answer.charCodeAt(0) - 65;
+            if (reasons[answerIndex] && newSelected[position] !== reasons[answerIndex]) {
+              newSelected[position] = reasons[answerIndex];
+              hasChanges = true;
+            }
+          }
+        }
+      });
+      
+      if (hasChanges) {
+        setSelected(newSelected);
+      }
+    }
+  }, [previewData]);
 
   const handleSelect = (idx: number, value: string) => {
     setSelected(prev => {
@@ -62,6 +105,13 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
 
   const introduction = previewData?.monologue?.introduction || previewData?.introduction ||
     'Four people are discussing their views on shopping. Complete the sentences. Use each answer only once. You will not need two of the reasons.';
+    
+  // Get monologue segments or use empty array if not available
+  const segments = previewData?.monologue?.segments || [];
+  
+  // Debug logging for segments
+  console.log('ListeningPart2 - segments:', segments);
+  console.log('ListeningPart2 - segments length:', segments.length);
 
   const currentPassage = previewData?.passageText || previewData?.passage || '';
 
@@ -106,13 +156,16 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
   };
 
   const togglePlayback = () => {
-    setIsPlaying(!isPlaying);
-    toast.success(isPlaying ? 'Audio paused' : 'Audio playing');
+    // This function is now handled by AudioPlayer component
+    toast.success('Audio playback controlled by AudioPlayer');
   };
 
   // --- AUDIO PLAYER FOR QUESTIONS SECTION ---
-  // Ưu tiên lấy audioUrl từ monologue, nếu không có thì lấy từ audioFiles[0]
-  const audioUrl = previewData?.monologue?.audioUrl || (Array.isArray(previewData?.audioFiles) ? previewData.audioFiles[0] : undefined);
+
+  // Get audio URL from previewData.audioFiles array
+  const audioUrl = Array.isArray(previewData?.audioFiles) && previewData.audioFiles.length > 0 
+    ? previewData.audioFiles[0] 
+    : previewData?.monologue?.audioUrl;
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const [isQuestionAudioPlaying, setIsQuestionAudioPlaying] = useState(false);
 
@@ -141,18 +194,21 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
 
   return (
     <div className="space-y-6">
-      {/* Audio Text Section */}
-      {previewData?.monologue?.audioText && (
+      {/* Monologue Segments */}
+      {segments.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Audio Text</CardTitle>
+            <CardTitle className="text-lg font-semibold">Listening Segments</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="bg-gray-50 p-4 rounded-md">
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {previewData.monologue.audioText}
-              </p>
-            </div>
+          <CardContent className="space-y-4">
+            {segments.map((segment: any, idx: number) => (
+              <div key={segment.id || idx} className="bg-gray-50 p-4 rounded-md">
+                <div className="font-medium text-gray-700 mb-1">{segment.speaker || `Person ${idx + 1}`}</div>
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {segment.text}
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -163,15 +219,12 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold">Listening Passage</CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
+              <AudioPlayer 
+                audioUrl={currentPassage ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/uploads/listening/sample/passage.mp3` : ''}
+                label="Play Passage"
                 size="sm"
-                onClick={togglePlayback}
-                className="flex items-center gap-1"
-              >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                {isPlaying ? 'Pause' : 'Play'}
-              </Button>
+                showLabel={true}
+              />
               <Button
                 variant="outline"
                 size="sm"
@@ -224,16 +277,12 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
           {/* AUDIO PLAYER FOR QUESTIONS SECTION */}
           {audioUrl && (
             <div className="mb-4 flex items-center gap-3">
-              <Button
-                variant="outline"
+              <AudioPlayer 
+                audioUrl={audioUrl || ''}
+                label="Play Audio"
                 size="sm"
-                onClick={handlePlayPauseAudio}
-                className="flex items-center gap-1"
-              >
-                {isQuestionAudioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                {isQuestionAudioPlaying ? 'Pause' : 'Play'}
-              </Button>
-              <audio ref={audioRef} src={audioUrl} preload="auto" />
+                showLabel={true}
+              />
               <span className="text-gray-500 text-sm">Audio for this part</span>
             </div>
           )}

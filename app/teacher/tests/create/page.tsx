@@ -18,7 +18,7 @@ export default function CreateTestPage() {
 
   const handleTestCreationSuccess = (testData: any) => {
     router.push('/teacher/tests');
-    showToast(`${testType === 'listening' ? 'Listening' : 'Reading'} test created successfully`, 'success');
+    // Toast message is already handled in the form components
   };
 
   return (

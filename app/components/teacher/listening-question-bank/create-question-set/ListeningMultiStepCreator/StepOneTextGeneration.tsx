@@ -22,6 +22,7 @@ import { Loader2, Wand2, AlertCircle, CheckCircle } from 'lucide-react';
 import { StepData } from './index';
 import ApiKeyInput from '../../components/ApiKeyInput';
 import { useApiKeys } from '@/app/hooks/useApiKeys';
+import { fetchWithAuth } from '@/app/lib/auth/apiInterceptor';
 
 interface StepOneTextGenerationProps {
   stepData: StepData;
@@ -58,14 +59,14 @@ export default function StepOneTextGeneration({
         generationType: stepData.generationType,
         ...(stepData.generationType === 'new' && { topic: stepData.topic }),
       };
-
-      const response = await fetch('/api/listening-question-bank/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const response = await fetchWithAuth(`${API_BASE_URL}/ai/test-listening-generation`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestData),
+            });
 
       if (!response.ok) {
         throw new Error(`Failed to generate questions: ${response.statusText}`);
@@ -76,8 +77,13 @@ export default function StepOneTextGeneration({
       if (result.success && result.data) {
         const generatedSet = result.data;
         
+        // Debug logging
+        console.log('StepOneTextGeneration - API response:', result);
+        console.log('StepOneTextGeneration - generatedSet:', generatedSet);
+        
         const updatedData: Partial<StepData> = {
           generatedQuestions: generatedSet.questions || [],
+          questions: generatedSet.questions || [], // Also map to questions field for compatibility
           passageText: generatedSet.passageText || '',
           passages: generatedSet.passages || [],
           passageTitle: generatedSet.title || '',
@@ -88,6 +94,8 @@ export default function StepOneTextGeneration({
           lectures: generatedSet.lectures || [],
           textGenerated: true,
         };
+        
+        console.log('StepOneTextGeneration - updatedData:', updatedData);
         
         updateStepData(updatedData);
         setSuccess(true);
@@ -137,10 +145,10 @@ export default function StepOneTextGeneration({
                 <SelectValue placeholder="Select part" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Part 1 - Conversations</SelectItem>
-                <SelectItem value="2">Part 2 - Monologue</SelectItem>
-                <SelectItem value="3">Part 3 - Discussion</SelectItem>
-                <SelectItem value="4">Part 4 - Lectures</SelectItem>
+                <SelectItem value={1}>Part 1 - Conversations</SelectItem>
+                <SelectItem value={2}>Part 2 - Monologue</SelectItem>
+                <SelectItem value={3}>Part 3 - Discussion</SelectItem>
+                <SelectItem value={4}>Part 4 - Lectures</SelectItem>
               </SelectContent>
             </Select>
           </div>

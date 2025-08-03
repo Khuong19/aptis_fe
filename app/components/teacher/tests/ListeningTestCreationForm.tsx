@@ -296,7 +296,7 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
             <Button 
               onClick={handleCreateTest}
               disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Headphones className="h-4 w-4 mr-2" />
               {isEdit ? 'Save Changes' : 'Create Listening Test'}

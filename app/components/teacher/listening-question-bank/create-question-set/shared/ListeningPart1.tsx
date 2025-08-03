@@ -1,27 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/basic';
 import { Edit2, Save, X, Play, Pause } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+interface Segment {
+  id: string;
+  text: string;
+  speaker: string;
+  order: number;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  options: {
+    [key: string]: string;
+  };
+  answer: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  context: string;
+  difficulty: string;
+  segments: Segment[];
+  question: Question;
+  audioUrl?: string;
+  audioText?: string;
+}
+
 interface ListeningPart1Props {
-  previewData: any;
+  previewData: {
+    title: string;
+    description: string;
+    type: string;
+    part: number;
+    level: string;
+    conversations: Conversation[];
+    audioFiles?: string[];
+    passageText?: string;
+    passage?: string;
+  };
   onEdit: (data: any) => void;
 }
 
 const ListeningPart1: React.FC<ListeningPart1Props> = ({ previewData, onEdit }) => {
-  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
-  const [editingData, setEditingData] = useState<any>(null);
+  const [editingConversationIndex, setEditingConversationIndex] = useState<number | null>(null);
+  const [editingData, setEditingData] = useState<Conversation | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [editingPassage, setEditingPassage] = useState(false);
   const [passageText, setPassageText] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isQuestionAudioPlaying, setIsQuestionAudioPlaying] = useState(false);
 
-  // --- AUDIO PLAYER FOR QUESTIONS SECTION ---
-  // Ưu tiên lấy audioUrl từ conversations, nếu không có thì lấy từ audioFiles[0]
-  const audioUrl = (previewData?.conversations && Array.isArray(previewData.conversations) && previewData.conversations[0]?.audioUrl) || 
-                   (Array.isArray(previewData?.audioFiles) ? previewData.audioFiles[0] : undefined);
+  // Audio URL for the conversation
+  const audioUrl = React.useMemo(() => {
+    return (
+      previewData?.conversations?.[0]?.audioUrl || 
+      (Array.isArray(previewData?.audioFiles) ? previewData.audioFiles[0] : undefined)
+    );
+  }, [previewData?.conversations, previewData?.audioFiles]);
+  
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   const handlePlayPauseAudio = () => {
@@ -29,61 +70,117 @@ const ListeningPart1: React.FC<ListeningPart1Props> = ({ previewData, onEdit }) 
     if (isQuestionAudioPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      audioRef.current.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast.error('Failed to play audio');
+      });
     }
   };
 
   React.useEffect(() => {
-    if (!audioRef.current) return;
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+    
     const onEnded = () => setIsQuestionAudioPlaying(false);
     const onPlay = () => setIsQuestionAudioPlaying(true);
     const onPause = () => setIsQuestionAudioPlaying(false);
-    audioRef.current.addEventListener('ended', onEnded);
-    audioRef.current.addEventListener('play', onPlay);
-    audioRef.current.addEventListener('pause', onPause);
+    
+    audioElement.addEventListener('ended', onEnded);
+    audioElement.addEventListener('play', onPlay);
+    audioElement.addEventListener('pause', onPause);
+    
     return () => {
-      audioRef.current?.removeEventListener('ended', onEnded);
-      audioRef.current?.removeEventListener('play', onPlay);
-      audioRef.current?.removeEventListener('pause', onPause);
+      audioElement.removeEventListener('ended', onEnded);
+      audioElement.removeEventListener('play', onPlay);
+      audioElement.removeEventListener('pause', onPause);
     };
   }, []);
 
   // Extract passage text - support both formats, prioritize passageText (database field)
-  const currentPassage = previewData?.passageText || previewData?.passage || '';
+  const currentPassage = React.useMemo(() => {
+    return previewData?.passageText || previewData?.passage || '';
+  }, [previewData?.passageText, previewData?.passage]);
 
   const handleStartEditing = (idx: number) => {
-    setEditingQuestionIndex(idx);
-    setEditingData({ ...previewData.questions[idx] });
+    setEditingConversationIndex(idx);
+    setEditingData(JSON.parse(JSON.stringify(previewData.conversations[idx])));
   };
 
-  const handleCancelEditing = () => {
-    setEditingQuestionIndex(null);
+  const handleCancelEditing = React.useCallback(() => {
+    setEditingConversationIndex(null);
     setEditingData(null);
-  };
+    toast('Changes discarded', { icon: 'ℹ️' });
+  }, []);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof Conversation, value: string) => {
+    if (!editingData) return;
     setEditingData({ ...editingData, [field]: value });
   };
 
-  const handleOptionChange = (key: string, value: string) => {
+  const handleSegmentChange = (segmentId: string, field: keyof Segment, value: string) => {
+    if (!editingData) return;
+    const updatedSegments = editingData.segments.map(segment => 
+      segment.id === segmentId ? { ...segment, [field]: value } : segment
+    );
+    setEditingData({ ...editingData, segments: updatedSegments });
+  };
+
+  const handleQuestionChange = (field: keyof Question, value: string) => {
+    if (!editingData) return;
     setEditingData({
       ...editingData,
-      options: { ...editingData.options, [key]: value },
+      question: { 
+        ...editingData.question, 
+        [field]: field === 'answer' ? value : value 
+      }
     });
   };
 
-  const handleAnswerChange = (value: string) => {
-    setEditingData({ ...editingData, answer: value });
+  const handleOptionChange = (optionKey: string, value: string) => {
+    if (!editingData) return;
+    setEditingData({
+      ...editingData,
+      question: {
+        ...editingData.question,
+        options: {
+          ...editingData.question.options,
+          [optionKey]: value
+        }
+      }
+    });
   };
 
-  const handleSave = () => {
-    if (!onEdit) return;
-    const updatedQuestions = [...previewData.questions];
-    updatedQuestions[editingQuestionIndex!] = editingData;
-    onEdit({ ...previewData, questions: updatedQuestions });
-    setEditingQuestionIndex(null);
-    setEditingData(null);
-    toast.success('Question updated successfully!');
+  // Helper function to safely access question options
+  const getQuestionOptions = (question: Question) => {
+    return Object.entries(question?.options || {});
+  };
+
+  const handleSave = React.useCallback(() => {
+    if (!onEdit || !editingData || editingConversationIndex === null) {
+      toast.error('Cannot save: Invalid editing state');
+      return;
+    }
+    
+    try {
+      const updatedConversations = [...previewData.conversations];
+      updatedConversations[editingConversationIndex] = editingData;
+      
+      onEdit({
+        ...previewData,
+        conversations: updatedConversations
+      });
+      
+      setEditingConversationIndex(null);
+      setEditingData(null);
+      toast.success('Conversation updated successfully!');
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      toast.error('Failed to save conversation');
+    }
+  }, [editingData, editingConversationIndex, onEdit, previewData]);
+
+  const handleCancelEditingPassage = () => {
+    setEditingPassage(false);
   };
 
   const handleStartEditingPassage = () => {
@@ -91,16 +188,28 @@ const ListeningPart1: React.FC<ListeningPart1Props> = ({ previewData, onEdit }) 
     setEditingPassage(true);
   };
 
-  const handleSavePassage = () => {
-    if (!onEdit) return;
-    onEdit({ ...previewData, passageText: passageText });
-    setEditingPassage(false);
-    toast.success('Passage updated successfully!');
-  };
+  const handleSavePassage = useCallback(() => {
+    if (!onEdit) {
+      toast.error('Cannot save: No edit handler provided');
+      return;
+    }
+    
+    try {
+      onEdit({ 
+        ...previewData, 
+        passageText: passageText,
+        description: previewData.description || '',
+        type: previewData.type || 'listening',
+        level: previewData.level || 'mixed'
+      });
+      setEditingPassage(false);
+      toast.success('Passage updated successfully!');
+    } catch (error) {
+      console.error('Error saving passage:', error);
+      toast.error('Failed to save passage');
+    }
+  }, [onEdit, passageText, previewData]);
 
-  const handleCancelEditingPassage = () => {
-    setEditingPassage(false);
-  };
 
   const togglePlayback = () => {
     setIsPlaying(!isPlaying);
@@ -193,14 +302,14 @@ const ListeningPart1: React.FC<ListeningPart1Props> = ({ previewData, onEdit }) 
         </CardContent>
       </Card>
 
-      {/* Questions Section */}
+      {/* Conversations Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Questions</CardTitle>
+          <CardTitle className="text-lg font-semibold">Conversations</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {/* AUDIO PLAYER FOR QUESTIONS SECTION */}
+          <div className="space-y-6">
+            {/* Audio Player */}
             {audioUrl && (
               <div className="mb-4 flex items-center gap-3">
                 <Button
@@ -216,80 +325,158 @@ const ListeningPart1: React.FC<ListeningPart1Props> = ({ previewData, onEdit }) 
                 <span className="text-gray-500 text-sm">Audio for this part</span>
               </div>
             )}
-            {previewData.questions?.map((question: any, index: number) => (
-              <div key={question.id || index} className="p-4 border rounded-lg">
-                {editingQuestionIndex === index ? (
-                  <div className="space-y-2">
-                    <Input
-                      className="mb-2"
-                      value={editingData?.text || ''}
-                      onChange={e => handleInputChange('text', e.target.value)}
-                      placeholder="Question text"
-                    />
-                    {Object.entries(editingData?.options || {}).map(([key, value]: [string, any]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="font-medium text-gray-700 w-6">{key}.</span>
-                        <Input
-                          value={value || ''}
-                          onChange={e => handleOptionChange(key, e.target.value)}
-                          className="w-full"
-                          placeholder={`Option ${key}`}
-                        />
-                        <input
-                          type="radio"
-                          checked={editingData?.answer === key}
-                          onChange={() => handleAnswerChange(key)}
-                          className="ml-2"
-                          name={`answer-${index}`}
-                        />
-                        <span className="text-xs">Correct</span>
+            {previewData.conversations?.map((conversation, index) => (
+              <div key={conversation.id || index} className="p-4 border rounded-lg">
+                {editingConversationIndex === index ? (
+                  <div className="space-y-4">
+                    {/* Conversation Title */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                      <Input
+                        value={editingData?.title || ''}
+                        onChange={e => handleInputChange('title', e.target.value)}
+                        placeholder="Conversation title"
+                      />
+                    </div>
+
+                    {/* Context */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Context</label>
+                      <Input
+                        value={editingData?.context || ''}
+                        onChange={e => handleInputChange('context', e.target.value)}
+                        placeholder="Conversation context"
+                      />
+                    </div>
+
+                    {/* Segments */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Conversation Segments</label>
+                      {editingData?.segments?.map((segment, segIndex) => (
+                        <div key={segment.id} className="mb-4 p-3 border rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Speaker: {segment.speaker}</span>
+                            <span className="text-xs text-gray-500">Order: {segment.order}</span>
+                          </div>
+                          <Input
+                            value={segment.text}
+                            onChange={e => handleSegmentChange(segment.id, 'text', e.target.value)}
+                            className="w-full mb-2"
+                            placeholder="Segment text"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Question */}
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-medium mb-2">Question</h4>
+                      <Input
+                        value={editingData?.question?.text || ''}
+                        onChange={e => handleQuestionChange('text', e.target.value)}
+                        className="mb-3"
+                        placeholder="Question text"
+                      />
+                      
+                      <div className="space-y-2">
+                        {Object.entries(editingData?.question?.options || {}).map(([key, value]) => (
+                          <div key={key} className="flex items-center gap-2">
+                            <span className="font-medium text-gray-700 w-6">{key}.</span>
+                            <Input
+                              value={value as string}
+                              onChange={e => handleOptionChange(key, e.target.value)}
+                              className="flex-1"
+                              placeholder={`Option ${key}`}
+                            />
+                            <input
+                              type="radio"
+                              checked={editingData?.question?.answer === key}
+                              onChange={() => handleQuestionChange('answer', key)}
+                              className="ml-2"
+                              name={`answer-${editingData?.id}`}
+                            />
+                            <span className="text-xs text-gray-500">Correct</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    <div className="flex gap-2 mt-2">
-                      <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </Button>
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                       <Button size="sm" variant="outline" onClick={handleCancelEditing}>
                         <X className="h-4 w-4 mr-1" />
                         Cancel
                       </Button>
+                      <Button size="sm" onClick={handleSave}>
+                        <Save className="h-4 w-4 mr-1" />
+                        Save Changes
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-gray-900">
-                        Question {index + 1}
-                      </h4>
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{conversation.title}</h4>
+                        <p className="text-sm text-gray-600">{conversation.context}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                          {conversation.difficulty}
+                        </span>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleStartEditing(index)}
+                        className="mt-1"
                       >
                         <Edit2 className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
                     </div>
-                    <p className="text-gray-700">{question.text}</p>
-                    <div className="space-y-1">
-                      {Object.entries(question.options || {}).map(([key, value]: [string, any]) => (
-                        <div key={key} className="flex items-center gap-2">
-                          <span className={`font-medium w-6 ${
-                            question.answer === key ? 'text-green-600' : 'text-gray-500'
-                          }`}>
-                            {key}.
-                          </span>
-                          <span className={`${
-                            question.answer === key ? 'text-green-600 font-medium' : 'text-gray-700'
-                          }`}>
-                            {value}
-                          </span>
-                          {question.answer === key && (
-                            <span className="text-green-600 text-sm">✓ Correct</span>
-                          )}
+
+                    {/* Conversation Segments */}
+                    <div className="border-l-2 border-gray-200 pl-4 space-y-4">
+                      {conversation.segments?.map((segment) => (
+                        <div key={segment.id} className="text-sm">
+                          <div className="font-medium text-blue-700">{segment.speaker}</div>
+                          <p className="text-gray-700">{segment.text}</p>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Question */}
+                    <div className="mt-4 pt-4 border-t">
+                      <h5 className="font-medium text-gray-900 mb-2">Question</h5>
+                      <p className="text-gray-700 mb-3">{conversation.question.text}</p>
+                      <div className="space-y-2">
+                        {Object.entries(conversation.question.options || {}).map(([key, value]) => (
+                          <div 
+                            key={key} 
+                            className={`flex items-center gap-2 p-2 rounded ${
+                              conversation.question.answer === key 
+                                ? 'bg-green-50 border border-green-200' 
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <span 
+                              className={`font-medium w-6 text-center ${
+                                conversation.question.answer === key 
+                                  ? 'text-green-600' 
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {key}.
+                            </span>
+                            <span className="text-gray-700">
+                              {value as string}
+                            </span>
+                            {conversation.question.answer === key && (
+                              <span className="ml-auto text-sm text-green-600">
+                                ✓ Correct Answer
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

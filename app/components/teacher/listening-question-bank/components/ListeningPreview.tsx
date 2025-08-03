@@ -5,7 +5,7 @@ import { Card, Badge } from '@/app/components/ui/basic';
 import { Volume2, Users, MessageSquare, User } from 'lucide-react';
 
 interface ListeningPreviewProps {
-  part: string;
+  part: number;
   data: any;
   audioFiles?: string[];
 }
@@ -258,11 +258,11 @@ export default function ListeningPreview({ part, data, audioFiles = [] }: Listen
     <div className="space-y-6">
       {renderAudioStatus()}
       
-      {part === '1' && renderPart1Preview()}
-      {part === '2' && renderPart2Preview()}
-      {part === '3' && renderPart3Preview()}
+      {part === 1 && renderPart1Preview()}
+      {part === 2 && renderPart2Preview()}
+      {part === 3 && renderPart3Preview()}
       
-      {!['1', '2', '3'].includes(part) && (
+      {![1, 2, 3].includes(part) && (
         <div className="text-center p-8 border border-dashed rounded-md">
           <p className="text-gray-500">Preview not available for Part {part}</p>
         </div>

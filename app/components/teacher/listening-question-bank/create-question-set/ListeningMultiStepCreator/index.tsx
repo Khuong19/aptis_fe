@@ -22,6 +22,7 @@ import {
   Save
 } from 'lucide-react';
 import { QuestionSet } from '@/app/types/question-bank';
+import { showToast } from '@/app/components/ui/ToastContainer';
 
 // Step components
 import StepOneTextGeneration from './StepOneTextGeneration';
@@ -35,12 +36,13 @@ interface ListeningMultiStepCreatorProps {
 
 export interface StepData {
   // Basic configuration
-  part: string;
+  part: number;
   generationType: 'paraphrase' | 'new';
   topic: string;
   
   // Generated content
   generatedQuestions: any[];
+  questions: any[]; // Direct mapping from API response
   passageText: string;
   passages: any[];
   passageTitle: string;
@@ -53,6 +55,7 @@ export interface StepData {
   // Audio data
   audioFiles: string[];
   audioErrors: string[];
+  audioFolder?: string; // Folder name for audio files
   voicePreferences: Record<string, string>;
   
   // Step completion status
@@ -72,10 +75,11 @@ const STEPS = [
 export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiStepCreatorProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [stepData, setStepData] = useState<StepData>({
-    part: '1',
+    part: 1,
     generationType: 'new',
     topic: '',
     generatedQuestions: [],
+    questions: [],
     passageText: '',
     passages: [],
     passageTitle: '',
@@ -86,6 +90,7 @@ export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiS
     lectures: [],
     audioFiles: [],
     audioErrors: [],
+    audioFolder: undefined,
     voicePreferences: {},
     textGenerated: false,
     textReviewed: false,
@@ -99,7 +104,61 @@ export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiS
 
   const handleNext = () => {
     if (currentStep < STEPS.length) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      
+      // Auto-complete current step before proceeding
+      if (currentStep === 2 && !stepData.textReviewed) {
+        console.log('Auto-completing Step 2...');
+        updateStepData({ textReviewed: true });
+      } else if (currentStep === 3 && !stepData.audioGenerated) {
+        console.log('Auto-completing Step 3...');
+        updateStepData({ audioGenerated: true });
+      }
+      
+      setCurrentStep(nextStep);
+    }
+  };
+
+  const handleSaveToQuestionBank = async () => {
+    try {
+      // Generate a unique ID for the question set
+      const questionSetId = `listening-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Prepare the question set data according to QuestionSet interface
+      const questionSetData: QuestionSet = {
+        id: questionSetId,
+        title: stepData.passageTitle || `Listening Part ${stepData.part} - ${stepData.topic || 'Generated'}`,
+        part: stepData.part,
+        level: 'B2', // Default level
+        questions: stepData.questions || stepData.generatedQuestions || [],
+        authorId: 'current-user', // This should be replaced with actual user ID
+        authorName: 'Current User', // This should be replaced with actual user name
+        isPublic: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        type: 'listening',
+        source: 'ai-generated',
+        passageText: stepData.passageText,
+        passages: stepData.passages,
+        // Listening-specific properties
+        conversations: stepData.conversations,
+        monologue: stepData.monologue ? {
+          ...stepData.monologue,
+          questions: stepData.questions || stepData.generatedQuestions || [], // Add questions array to monologue
+        } : undefined,
+        speakers: stepData.speakers,
+        discussion: stepData.discussion,
+        lectures: stepData.lectures,
+        audioFiles: stepData.audioFiles,
+      };
+
+      // Call the onSuccess callback with the question set data
+      onSuccess([questionSetData]);
+      showToast('Listening question set saved successfully', 'success');
+      
+    } catch (error) {
+      console.error('Failed to save question set:', error);
+      showToast('Failed to save question set', 'error');
     }
   };
 
@@ -141,7 +200,8 @@ export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiS
       case 2:
         return stepData.textGenerated;
       case 3:
-        return stepData.textGenerated && stepData.textReviewed;
+        // Allow proceeding to Step 3 if text is generated (removed textReviewed requirement)
+        return stepData.textGenerated;
       case 4:
         return stepData.textGenerated && stepData.textReviewed && stepData.audioGenerated;
       default:
@@ -272,7 +332,7 @@ export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiS
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStep === 1}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>Previous</span>
@@ -286,17 +346,17 @@ export default function ListeningMultiStepCreator({ onSuccess }: ListeningMultiS
         {currentStep < STEPS.length ? (
           <Button
             onClick={handleNext}
-            disabled={!canProceedToStep(currentStep + 1)}
-            className="flex items-center space-x-2"
+            disabled={false} // Always allow navigation
+            className="flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>Next</span>
             <ChevronRight className="w-4 h-4" />
           </Button>
         ) : (
           <Button
-            onClick={() => onSuccess([])}
-            disabled={!stepData.finalPreviewCompleted}
-            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+            onClick={handleSaveToQuestionBank}
+            disabled={false} // Always allow saving when on final step
+            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
             <span>Save Question Set</span>
