@@ -260,7 +260,7 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     }
   };
 
-  // Process Listening Part 1 (Conversations)
+  // Process Listening Part 1 (Conversations with segments and questions)
   const processListeningPart1 = (data: any[]): any[] => {
     if (data.length === 0) return [];
     
@@ -270,10 +270,10 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     const firstRow = data[0];
     console.log('First row:', firstRow);
     
-    // Required columns for Part 1: conversation_id, conversation_audioText, question_text, options, correct_answer
+    // Required columns for Part 1: conversation_title, context, difficulty, speaker_1_text, speaker_2_text, question_text, options, answer
     const requiredColumns = [
-      'conversation_id', 'conversation_audioText', 'question_text', 
-      'option_A', 'option_B', 'option_C', 'option_D', 'correct_answer'
+      'conversation_title', 'context', 'difficulty', 'speaker_1_text', 'speaker_2_text', 
+      'question_text', 'option_A', 'option_B', 'option_C', 'answer'
     ];
     
     const hasRequiredColumns = requiredColumns.every(col => 
@@ -281,61 +281,91 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     );
     
     if (!hasRequiredColumns) {
-      setError('Invalid format for Listening Part 1. Expected columns: title, conversation_id, conversation_audioText, question_text, option_A, option_B, option_C, option_D, correct_answer');
+      setError('Invalid format for Listening Part 1. Expected columns: conversation_title, context, difficulty, speaker_1_text, speaker_2_text, question_text, option_A, option_B, option_C, answer');
       return [];
     }
     
-    // Group data by conversation_id
+    // Group data by conversation_title
     const conversationGroups: Record<string, any[]> = {};
     data.forEach(row => {
-      const convId = row.conversation_id || row.Conversation_id;
+      const convId = row.conversation_title || row.Conversation_title;
       if (!conversationGroups[convId]) {
         conversationGroups[convId] = [];
       }
       conversationGroups[convId].push(row);
     });
     
-    // Process conversations
+    // Process conversations with segments and questions
     const conversations = Object.entries(conversationGroups).map(([convId, rows]) => {
       const firstRowOfConv = rows[0];
-      return {
-        id: convId,
-        title: firstRowOfConv.conversation_title || firstRowOfConv.Conversation_title || `Conversation ${convId}`,
-        audioText: firstRowOfConv.conversation_audioText || firstRowOfConv.Conversation_audioText || '',
-        audioUrl: firstRowOfConv.conversation_audioUrl || firstRowOfConv.Conversation_audioUrl || '',
-      };
-    });
-    
-    // Process questions
-    const questions = data.map((row, index) => {
-      const options: Record<string, string> = {
-        A: row.option_A || row.Option_A || '',
-        B: row.option_B || row.Option_B || '',
-        C: row.option_C || row.Option_C || '',
-        D: row.option_D || row.Option_D || ''
+      
+      // Create segments array from speaker texts
+      const segments = [];
+      if (firstRowOfConv.speaker_1_text || firstRowOfConv.Speaker_1_text) {
+        segments.push({
+          id: 'seg-1',
+          text: firstRowOfConv.speaker_1_text || firstRowOfConv.Speaker_1_text || '',
+          speaker: firstRowOfConv.speaker_1 || firstRowOfConv.Speaker_1 || 'Speaker 1',
+          order: 1
+        });
+      }
+      if (firstRowOfConv.speaker_2_text || firstRowOfConv.Speaker_2_text) {
+        segments.push({
+          id: 'seg-2',
+          text: firstRowOfConv.speaker_2_text || firstRowOfConv.Speaker_2_text || '',
+          speaker: firstRowOfConv.speaker_2 || firstRowOfConv.Speaker_2 || 'Speaker 2',
+          order: 2
+        });
+      }
+      if (firstRowOfConv.speaker_3_text || firstRowOfConv.Speaker_3_text) {
+        segments.push({
+          id: 'seg-3',
+          text: firstRowOfConv.speaker_3_text || firstRowOfConv.Speaker_3_text || '',
+          speaker: firstRowOfConv.speaker_3 || firstRowOfConv.Speaker_3 || 'Speaker 3',
+          order: 3
+        });
+      }
+      if (firstRowOfConv.speaker_4_text || firstRowOfConv.Speaker_4_text) {
+        segments.push({
+          id: 'seg-4',
+          text: firstRowOfConv.speaker_4_text || firstRowOfConv.Speaker_4_text || '',
+          speaker: firstRowOfConv.speaker_4 || firstRowOfConv.Speaker_4 || 'Speaker 4',
+          order: 4
+        });
+      }
+      
+      // Create question object
+      const question = {
+        id: firstRowOfConv.question_id || `q-${convId}`,
+        text: firstRowOfConv.question_text || firstRowOfConv.Question_text || '',
+        options: {
+          A: firstRowOfConv.option_A || firstRowOfConv.Option_A || '',
+          B: firstRowOfConv.option_B || firstRowOfConv.Option_B || '',
+          C: firstRowOfConv.option_C || firstRowOfConv.Option_C || ''
+        },
+        answer: firstRowOfConv.answer || firstRowOfConv.Answer || ''
       };
       
       return {
-        id: row.question_id || `q${index + 1}`,
-        text: row.question_text || row.Question_text || '',
-        options,
-        answer: row.correct_answer || row.Correct_answer || '',
-        explanation: row.explanation || row.Explanation || '',
-        conversationId: row.conversation_id || row.Conversation_id,
-        part: 1
+        id: convId,
+        title: firstRowOfConv.conversation_title || firstRowOfConv.Conversation_title || `Conversation ${convId}`,
+        context: firstRowOfConv.context || firstRowOfConv.Context || '',
+        difficulty: firstRowOfConv.difficulty || firstRowOfConv.Difficulty || 'A2+',
+        segments,
+        question,
+        audioUrl: firstRowOfConv.conversation_audioUrl || firstRowOfConv.Conversation_audioUrl || firstRowOfConv.audio_url || ''
       };
     });
     
     const result = [{
-      conversations,
-      questions
+      conversations
     }];
     
     console.log('Listening Part 1 processing result:', result);
     return result;
   };
 
-  // Process Listening Part 2 (Monologue)
+  // Process Listening Part 2 (Monologue with 4 people matching format)
   const processListeningPart2 = (data: any[]): any[] => {
     if (data.length === 0) return [];
     
@@ -344,8 +374,9 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     // Check for required columns for monologue
     const firstRow = data[0];
     const requiredColumns = [
-      'monologue_title', 'monologue_audioText', 'question_text', 
-      'option_A', 'option_B', 'option_C', 'option_D', 'correct_answer'
+      'topic', 'person_1_text', 'person_2_text', 'person_3_text', 'person_4_text', 
+      'option_A', 'option_B', 'option_C', 'option_D', 'option_E', 'option_F', 
+      'person_1_answer', 'person_2_answer', 'person_3_answer', 'person_4_answer'
     ];
     
     const hasRequiredColumns = requiredColumns.every(col => 
@@ -353,36 +384,84 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     );
     
     if (!hasRequiredColumns) {
-      setError('Invalid format for Listening Part 2. Expected columns: title, monologue_title, monologue_topic, monologue_audioText, question_text, option_A, option_B, option_C, option_D, correct_answer');
+      setError('Invalid format for Listening Part 2. Expected columns: topic, person_1_text, person_2_text, person_3_text, person_4_text, option_A, option_B, option_C, option_D, option_E, option_F, person_1_answer, person_2_answer, person_3_answer, person_4_answer');
       return [];
     }
     
     // Extract monologue data from first row
     const monologue = {
-      title: firstRow.monologue_title || firstRow.Monologue_title || '',
-      topic: firstRow.monologue_topic || firstRow.Monologue_topic || '',
-      audioText: firstRow.monologue_audioText || firstRow.Monologue_audioText || '',
-      audioUrl: firstRow.monologue_audioUrl || firstRow.Monologue_audioUrl || '',
+      id: firstRow.id || `monologue-1`,
+      title: `Listening Part 2 - ${firstRow.topic || firstRow.Topic || 'Topic'}`,
+      topic: firstRow.topic || firstRow.Topic || '',
+      introduction: `Four people are discussing their views on ${firstRow.topic || firstRow.Topic || 'the topic'}. Complete the sentences. Use each answer only once. You will not need two of the reasons.`,
+      options: [
+        firstRow.option_A || firstRow.Option_A || '',
+        firstRow.option_B || firstRow.Option_B || '',
+        firstRow.option_C || firstRow.Option_C || '',
+        firstRow.option_D || firstRow.Option_D || '',
+        firstRow.option_E || firstRow.Option_E || '',
+        firstRow.option_F || firstRow.Option_F || ''
+      ],
+      segments: [
+        {
+          id: 'seg-1',
+          text: firstRow.person_1_text || firstRow.Person_1_text || '',
+          speaker: 'Person 1',
+          order: 1
+        },
+        {
+          id: 'seg-2',
+          text: firstRow.person_2_text || firstRow.Person_2_text || '',
+          speaker: 'Person 2',
+          order: 2
+        },
+        {
+          id: 'seg-3',
+          text: firstRow.person_3_text || firstRow.Person_3_text || '',
+          speaker: 'Person 3',
+          order: 3
+        },
+        {
+          id: 'seg-4',
+          text: firstRow.person_4_text || firstRow.Person_4_text || '',
+          speaker: 'Person 4',
+          order: 4
+        }
+      ],
+      audioUrl: firstRow.audioUrl || firstRow.AudioUrl || firstRow.audio_url || ''
     };
     
-    // Process questions
-    const questions = data.map((row, index) => {
-      const options: Record<string, string> = {
-        A: row.option_A || row.Option_A || '',
-        B: row.option_B || row.Option_B || '',
-        C: row.option_C || row.Option_C || '',
-        D: row.option_D || row.Option_D || ''
-      };
-      
-      return {
-        id: row.question_id || `q${index + 1}`,
-        text: row.question_text || row.Question_text || '',
-        options,
-        answer: row.correct_answer || row.Correct_answer || '',
-        explanation: row.explanation || row.Explanation || '',
-        part: 2
-      };
-    });
+    // Process questions (matching format)
+    const questions = [
+      {
+        id: 'q-1',
+        text: 'Person 1',
+        sentence: firstRow.person_1_sentence || firstRow.Person_1_sentence || firstRow.option_A || firstRow.Option_A || '',
+        answer: firstRow.person_1_answer || firstRow.Person_1_answer || 'A',
+        position: 1
+      },
+      {
+        id: 'q-2',
+        text: 'Person 2',
+        sentence: firstRow.person_2_sentence || firstRow.Person_2_sentence || firstRow.option_B || firstRow.Option_B || '',
+        answer: firstRow.person_2_answer || firstRow.Person_2_answer || 'B',
+        position: 2
+      },
+      {
+        id: 'q-3',
+        text: 'Person 3',
+        sentence: firstRow.person_3_sentence || firstRow.Person_3_sentence || firstRow.option_C || firstRow.Option_C || '',
+        answer: firstRow.person_3_answer || firstRow.Person_3_answer || 'C',
+        position: 3
+      },
+      {
+        id: 'q-4',
+        text: 'Person 4',
+        sentence: firstRow.person_4_sentence || firstRow.Person_4_sentence || firstRow.option_D || firstRow.Option_D || '',
+        answer: firstRow.person_4_answer || firstRow.Person_4_answer || 'D',
+        position: 4
+      }
+    ];
     
     const result = [{
       monologue,
@@ -402,8 +481,9 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     // Check for required columns for discussion
     const firstRow = data[0];
     const requiredColumns = [
-      'discussion_topic', 'speaker_id', 'speaker_name', 'speaker_opinion',
-      'question_text', 'option_A', 'option_B', 'option_C', 'option_D', 'correct_answer'
+      'speaker_1_line_1', 'speaker_2_line_1', 'speaker_1_line_2', 'speaker_2_line_2',
+      'question_1_text', 'question_1_answer', 'question_2_text', 'question_2_answer', 
+      'question_3_text', 'question_3_answer', 'question_4_text', 'question_4_answer'
     ];
     
     const hasRequiredColumns = requiredColumns.every(col => 
@@ -411,64 +491,95 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     );
     
     if (!hasRequiredColumns) {
-      setError('Invalid format for Listening Part 3. Expected columns: title, discussion_topic, speaker_id, speaker_name, speaker_opinion, question_text, option_A, option_B, option_C, option_D, correct_answer');
+      setError('Invalid format for Listening Part 3. Expected columns: speaker_1_line_1, speaker_2_line_1, speaker_1_line_2, speaker_2_line_2, question_1_text, question_1_answer, question_2_text, question_2_answer, question_3_text, question_3_answer, question_4_text, question_4_answer');
       return [];
     }
     
-    // Extract discussion topic from first row
-    const discussionTopic = firstRow.discussion_topic || firstRow.Discussion_topic || '';
+    // Create discussion array from speaker lines
+    const discussion = [];
     
-    // Group speakers by speaker_id
-    const speakerGroups: Record<string, any[]> = {};
-    data.forEach(row => {
-      const speakerId = row.speaker_id || row.Speaker_id;
-      if (!speakerGroups[speakerId]) {
-        speakerGroups[speakerId] = [];
+    // Add speaker 1 line 1 (Man)
+    if (firstRow.speaker_1_line_1 || firstRow.Speaker_1_line_1) {
+      discussion.push({
+        speaker: "Man",
+        text: firstRow.speaker_1_line_1 || firstRow.Speaker_1_line_1 || ''
+      });
+    }
+    
+    // Add speaker 2 line 1 (Woman)
+    if (firstRow.speaker_2_line_1 || firstRow.Speaker_2_line_1) {
+      discussion.push({
+        speaker: "Woman",
+        text: firstRow.speaker_2_line_1 || firstRow.Speaker_2_line_1 || ''
+      });
+    }
+    
+    // Add speaker 1 line 2 (Man)
+    if (firstRow.speaker_1_line_2 || firstRow.Speaker_1_line_2) {
+      discussion.push({
+        speaker: "Man",
+        text: firstRow.speaker_1_line_2 || firstRow.Speaker_1_line_2 || ''
+      });
+    }
+    
+    // Add speaker 2 line 2 (Woman)
+    if (firstRow.speaker_2_line_2 || firstRow.Speaker_2_line_2) {
+      discussion.push({
+        speaker: "Woman",
+        text: firstRow.speaker_2_line_2 || firstRow.Speaker_2_line_2 || ''
+      });
+    }
+    
+    // Process questions
+    const questions = [
+      {
+        id: 'q1',
+        text: firstRow.question_1_text || firstRow.Question_1_text || '',
+        options: {
+          A: "Man",
+          B: "Woman",
+          C: "Both"
+        },
+        answer: firstRow.question_1_answer || firstRow.Question_1_answer || 'A',
+        correctPerson: firstRow.question_1_correct_person || firstRow.Question_1_correct_person || 'man'
+      },
+      {
+        id: 'q2',
+        text: firstRow.question_2_text || firstRow.Question_2_text || '',
+        options: {
+          A: "Man",
+          B: "Woman",
+          C: "Both"
+        },
+        answer: firstRow.question_2_answer || firstRow.Question_2_answer || 'B',
+        correctPerson: firstRow.question_2_correct_person || firstRow.Question_2_correct_person || 'woman'
+      },
+      {
+        id: 'q3',
+        text: firstRow.question_3_text || firstRow.Question_3_text || '',
+        options: {
+          A: "Man",
+          B: "Woman",
+          C: "Both"
+        },
+        answer: firstRow.question_3_answer || firstRow.Question_3_answer || 'A',
+        correctPerson: firstRow.question_3_correct_person || firstRow.Question_3_correct_person || 'man'
+      },
+      {
+        id: 'q4',
+        text: firstRow.question_4_text || firstRow.Question_4_text || '',
+        options: {
+          A: "Man",
+          B: "Woman",
+          C: "Both"
+        },
+        answer: firstRow.question_4_answer || firstRow.Question_4_answer || 'B',
+        correctPerson: firstRow.question_4_correct_person || firstRow.Question_4_correct_person || 'woman'
       }
-      speakerGroups[speakerId].push(row);
-    });
-    
-    // Process speakers (discussion participants)
-    const speakers = Object.entries(speakerGroups).map(([speakerId, rows]) => {
-      const firstRowOfSpeaker = rows[0];
-      return {
-        id: speakerId,
-        name: firstRowOfSpeaker.speaker_name || firstRowOfSpeaker.Speaker_name || `Speaker ${speakerId}`,
-        opinion: firstRowOfSpeaker.speaker_opinion || firstRowOfSpeaker.Speaker_opinion || '',
-        audioUrl: firstRowOfSpeaker.speaker_audioUrl || firstRowOfSpeaker.Speaker_audioUrl || '',
-        text: firstRowOfSpeaker.speaker_opinion || firstRowOfSpeaker.Speaker_opinion || ''
-      };
-    });
-    
-    // Process questions (remove duplicates by question_id)
-    const questionMap = new Map();
-    data.forEach((row, index) => {
-      const questionId = row.question_id || `q${index + 1}`;
-      if (!questionMap.has(questionId)) {
-        const options: Record<string, string> = {
-          A: row.option_A || row.Option_A || '',
-          B: row.option_B || row.Option_B || '',
-          C: row.option_C || row.Option_C || '',
-          D: row.option_D || row.Option_D || ''
-        };
-        
-        questionMap.set(questionId, {
-          id: questionId,
-          text: row.question_text || row.Question_text || '',
-          options,
-          answer: row.correct_answer || row.Correct_answer || '',
-          explanation: row.explanation || row.Explanation || '',
-          part: 3
-        });
-      }
-    });
-    
-    const questions = Array.from(questionMap.values());
+    ];
     
     const result = [{
-      discussionTopic,
-      speakers,
-      discussion: speakers, // For compatibility with existing code
+      discussion,
       questions
     }];
     
@@ -485,8 +596,8 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     // Check for required columns for lectures
     const firstRow = data[0];
     const requiredColumns = [
-      'lecture_id', 'lecture_title', 'lecture_audioText', 'question_text', 
-      'option_A', 'option_B', 'option_C', 'option_D', 'correct_answer'
+      'lecture_id', 'lecture_topic', 'speaker', 'audioText', 'question_id', 'questionText',
+      'optionA', 'optionB', 'optionC', 'answer'
     ];
     
     const hasRequiredColumns = requiredColumns.every(col => 
@@ -494,7 +605,7 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
     );
     
     if (!hasRequiredColumns) {
-      setError('Invalid format for Listening Part 4. Expected columns: title, level, lecture_id, lecture_title, lecture_introduction, lecture_audioText, lecture_audioUrl, question_id, question_text, question_paragraph, option_A, option_B, option_C, option_D, correct_answer, explanation');
+      setError('Invalid format for Listening Part 4. Expected columns: lecture_id, lecture_topic, speaker, audioText, question_id, questionText, optionA, optionB, optionC, answer');
       return [];
     }
     
@@ -508,48 +619,37 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
       lectureGroups[lectureId].push(row);
     });
     
-    // Process lectures
+    // Process lectures with questions
     const lectures = Object.entries(lectureGroups).map(([lectureId, rows]) => {
       const firstRowOfLecture = rows[0];
+      
+      // Process questions for this lecture
+      const questions = rows.map((row, index) => {
+        const options: Record<string, string> = {
+          A: row.optionA || row.OptionA || '',
+          B: row.optionB || row.OptionB || '',
+          C: row.optionC || row.OptionC || ''
+        };
+        
+        return {
+          id: row.question_id || row.Question_id || `q-${index + 1}`,
+          text: row.questionText || row.QuestionText || '',
+          options,
+          answer: row.answer || row.Answer || ''
+        };
+      });
+      
       return {
         id: lectureId,
-        title: firstRowOfLecture.lecture_title || firstRowOfLecture.Lecture_title || `Lecture ${lectureId}`,
-        introduction: firstRowOfLecture.lecture_introduction || firstRowOfLecture.Lecture_introduction || '',
-        audioText: firstRowOfLecture.lecture_audioText || firstRowOfLecture.Lecture_audioText || '',
-        audioUrl: firstRowOfLecture.lecture_audioUrl || firstRowOfLecture.Lecture_audioUrl || '',
+        topic: firstRowOfLecture.lecture_topic || firstRowOfLecture.Lecture_topic || '',
+        speaker: firstRowOfLecture.speaker || firstRowOfLecture.Speaker || 'Lecturer',
+        audioText: firstRowOfLecture.audioText || firstRowOfLecture.AudioText || '',
+        questions
       };
     });
     
-    // Process questions (remove duplicates by question_id)
-    const questionMap = new Map();
-    data.forEach((row, index) => {
-      const questionId = row.question_id || `q${index + 1}`;
-      if (!questionMap.has(questionId)) {
-        const options: Record<string, string> = {
-          A: row.option_A || row.Option_A || '',
-          B: row.option_B || row.Option_B || '',
-          C: row.option_C || row.Option_C || '',
-          D: row.option_D || row.Option_D || ''
-        };
-        
-        questionMap.set(questionId, {
-          id: questionId,
-          text: row.question_text || row.Question_text || '',
-          paragraph: row.question_paragraph || row.Question_paragraph || '',
-          options,
-          answer: row.correct_answer || row.Correct_answer || '',
-          explanation: row.explanation || row.Explanation || '',
-          lectureId: row.lecture_id || row.Lecture_id,
-          part: 4
-        });
-      }
-    });
-    
-    const questions = Array.from(questionMap.values());
-    
     const result = [{
-      lectures,
-      questions
+      lectures
     }];
     
     console.log('Listening Part 4 processing result:', result);
