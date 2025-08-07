@@ -132,7 +132,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   const renderListeningPart1 = (questionSet: any) => {
     const conversations = questionSet.conversations || [];
     const currentConversation = conversations[currentQuestionIndex] || {};
-    const questionKey = `${questionSet.id}-${currentQuestionIndex}`;
+    const questionKey = `${questionSet.id}-conv${currentQuestionIndex}`;
 
     if (!currentConversation.question) {
       return (
@@ -314,7 +314,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
         {/* Questions */}
         <div className="bg-white border rounded-lg p-6 space-y-4">
           {questions.map((question: any, index: number) => {
-            const questionKey = `${questionSet.id}-${index}`;
+            const questionKey = `${questionSet.id}-q${index}`;
 
             const options = {
               A: questions[0].sentence,
@@ -406,7 +406,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           <h3 className="font-medium mb-4">Who expresses which opinion?</h3>
           <div className="space-y-4">
             {questions.map((question: any, index: number) => {
-              const questionKey = `${questionSet.id}-${index}`;
+              const questionKey = `${questionSet.id}-q${index}`;
 
               return (
                 <div key={index} className="flex items-center space-x-3">
@@ -495,7 +495,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
         {/* Questions */}
         <div className="space-y-6">
           {allQuestions.map((question: any, index: number) => {
-            const questionKey = `${questionSet.id}-${index}`;
+            const questionKey = `${questionSet.id}-${question.lectureTitle}-q${index}`;
 
             return (
               <div key={index} className="bg-white border rounded-lg p-6">
