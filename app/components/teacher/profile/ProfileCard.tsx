@@ -37,7 +37,7 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
             <div className="flex items-center px-4 py-2 bg-gray-100 rounded-lg">
               <BookOpen size={20} className="text-[#152C61] mr-2" />
               <div>
-                <p className="text-xs text-gray-500">Tổng số bài kiểm tra</p>
+                <p className="text-xs text-gray-500">Total Tests</p>
                 <p className="text-lg font-semibold text-gray-900">{profile.totalTests}</p>
               </div>
             </div>
@@ -46,11 +46,11 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
       </div>
       
       <div className="border-t border-gray-200 px-6 py-4">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin cá nhân</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
         
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-500">Họ và tên</label>
+            <label className="block text-sm font-medium text-gray-500">Full Name</label>
             <input
               type="text"
               value={profile.name}
@@ -74,7 +74,7 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
               type="button"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#152C61] hover:bg-[#0f1f45] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#152C61]"
             >
-              Chỉnh sửa thông tin
+              Edit Profile
             </button>
           </div>
         </div>

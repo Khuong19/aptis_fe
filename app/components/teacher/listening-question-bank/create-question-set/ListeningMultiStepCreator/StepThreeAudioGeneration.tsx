@@ -32,6 +32,7 @@ import {
 import { StepData } from './index';
 import { useApiKeys } from '@/app/hooks/useApiKeys';
 import { getListeningAudioUrl, getListeningFolderName } from '@/app/lib/utils/audioUtils';
+import { fetchWithAuth } from '@/app/lib/auth/apiInterceptor';
 
 interface StepThreeAudioGenerationProps {
   stepData: StepData;
@@ -65,16 +66,29 @@ export default function StepThreeAudioGeneration({
     
     switch (part) {
       case '1':
-        // Conversations
+        // Conversations - each conversation has segments
         if (stepData.conversations) {
-          stepData.conversations.forEach((conv, index) => {
-            items.push({
-              id: `conversation-${index}`,
-              label: `Conversation ${index + 1}`,
-              text: conv.audioText || conv.text,
-              voiceKey: index === 0 ? 'speaker1' : 'speaker2',
-              type: 'conversation'
-            });
+          stepData.conversations.forEach((conv, convIndex) => {
+            if (conv.segments && Array.isArray(conv.segments)) {
+              conv.segments.forEach((segment: any, segIndex: number) => {
+                items.push({
+                  id: `segment-${convIndex}-${segIndex}`,
+                  label: `${conv.title || `Conversation ${convIndex + 1}`} - ${segment.speaker || `Speaker ${segIndex + 1}`}`,
+                  text: segment.text,
+                  voiceKey: segIndex % 2 === 0 ? 'speaker1' : 'speaker2',
+                  type: 'conversation-segment'
+                });
+              });
+            } else {
+              // Fallback for conversations without segments
+              items.push({
+                id: `conversation-${convIndex}`,
+                label: `Conversation ${convIndex + 1}`,
+                text: conv.audioText || conv.text || '',
+                voiceKey: convIndex % 2 === 0 ? 'speaker1' : 'speaker2',
+                type: 'conversation'
+              });
+            }
           });
         }
         break;
@@ -166,7 +180,7 @@ export default function StepThreeAudioGeneration({
         
         try {
           // Call API to generate actual audio file
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ai/generate-single-audio`, {
+          const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/ai/generate-single-audio`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

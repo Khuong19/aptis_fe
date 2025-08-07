@@ -54,7 +54,10 @@ export default function EnhancedQuestionBankManager() {
         setLoading(true);
         setError(null);
         
-        const fetchedQuestionSets = await QuestionBankService.getAllQuestionSets();
+        // ✅ Use filtered method to only get reading questions
+        const fetchedQuestionSets = await QuestionBankService.getQuestionSetsWithFilter({ 
+          type: 'reading' 
+        });
         setQuestionSets(fetchedQuestionSets);
         
       } catch (err) {
@@ -71,6 +74,7 @@ export default function EnhancedQuestionBankManager() {
 
 
   // Filter question sets with all filters
+  // Note: All questionSets are already filtered to be reading type from API call
   const filteredQuestionSets = questionSets.filter(qs => {
     // Text search filter
     const matchesSearch = searchTerm === '' || 

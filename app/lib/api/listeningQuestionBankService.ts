@@ -90,7 +90,6 @@ export const ListeningQuestionBankService = {
     },
 
   createQuestionSet: async (newSet: Partial<QuestionSet>): Promise<QuestionSet> => {
-    console.log('Service: Sending payload to /api/listening-question-bank', JSON.stringify(newSet, null, 2));
     const response = await fetchWithAuth(`${API_BASE_URL}/listening-question-bank`, {
       method: 'POST',
       headers: {

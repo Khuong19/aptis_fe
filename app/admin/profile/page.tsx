@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import TeacherLayout from '@/app/components/teacher/layout/TeacherLayout';
+import AdminLayout from '@/app/components/admin/layout/AdminLayout';
 import { UserIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { ProfileService, UserProfile } from '@/app/lib/api/profileService';
 
-export default function ProfilePage() {
+export default function AdminProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -98,17 +98,17 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <TeacherLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#152C61]"></div>
         </div>
-      </TeacherLayout>
+      </AdminLayout>
     );
   }
 
   if (error || !profile) {
     return (
-      <TeacherLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Profile</h2>
@@ -121,13 +121,13 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
-      </TeacherLayout>
+      </AdminLayout>
     );
   }
 
   return (
-    <TeacherLayout>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Teacher Profile</h1>
+    <AdminLayout>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Profile</h1>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {/* Profile Header */}
@@ -268,6 +268,6 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-    </TeacherLayout>
+    </AdminLayout>
   );
 } 

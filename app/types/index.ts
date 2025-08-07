@@ -20,7 +20,7 @@ export interface Test {
   title: string;
   description: string;
   type: 'Reading' | 'Listening';
-  status: 'Draft' | 'Public';
+  status: 'Draft' | 'Published';
   duration: number;
   questions: number;
   createdAt: string;
@@ -73,24 +73,26 @@ export interface LearnerProfile {
 export interface LearnerTest {
   id: string;
   title: string;
-  type: 'Reading' | 'Listening' | 'Grammar';
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  status: 'New' | 'In Progress' | 'Completed';
-  duration: number; // minutes
-  questions: number;
-  thumbnail?: string;
-  progress?: number; // percentage
-  lastAttempt?: string; // ISO date string
+  description?: string;
+  type: 'reading' | 'listening';
+  status: 'Draft' | 'Published';
+  duration: number;
+  questions?: number;
+  totalQuestions?: number;
+  lastAttempt?: string;
+  createdAt?: string;
+  authorName?: string;
+  questionSets?: any[];
 }
 
 export interface TestResult {
   id: string;
   testId: string;
   testTitle: string;
-  type: 'Reading' | 'Listening' | 'Grammar';
-  score: number; // percentage
-  dateTaken: string; // ISO date string
-  timeSpent: number; // minutes
+  type: 'Reading' | 'Listening';
+  score: number;
+  dateTaken: string;
+  timeSpent: number;
   correctAnswers: number;
   totalQuestions: number;
 }

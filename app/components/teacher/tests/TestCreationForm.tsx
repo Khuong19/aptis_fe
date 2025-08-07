@@ -33,7 +33,6 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
   const [testTitle, setTestTitle] = useState(initialData?.title || '');
   const [testDescription, setTestDescription] = useState(initialData?.description || '');
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'reading' | 'listening'>('all');
   const [partFilter, setPartFilter] = useState<'all' | '1' | '2' | '3' | '4'>('all');
   const [levelFilter, setLevelFilter] = useState<'all' | 'A2' | 'B1' | 'B2' | 'C1'>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'official' | 'ai-generated' | 'manual'>('all');
@@ -41,7 +40,7 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState('');
-  // Thêm state cho thời gian làm bài (phút)
+  const [isCheckingTitle, setIsCheckingTitle] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(
     initialData?.duration ? Math.floor(initialData.duration / 60) : 35
   );
@@ -51,7 +50,6 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
       setTestTitle(initialData.title || '');
       setTestDescription(initialData.description || '');
       setSelectedSets(initialData.questionSets || []);
-      // Khi edit, hiển thị lại giá trị phút nếu có initialData.duration
       if (initialData.duration) {
         setDurationMinutes(Math.floor(initialData.duration / 60));
       }
@@ -75,11 +73,12 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
   }, []);
   
   const filteredQuestionSets = questionSets.filter(set => {
-    if (searchQuery && !set.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+    // Only show reading question sets
+    if (set.type !== 'reading') {
       return false;
     }
     
-    if (typeFilter !== 'all' && set.type !== typeFilter) {
+    if (searchQuery && !set.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
     
@@ -109,8 +108,11 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
   const handleAutoPick = () => {
     setSelectedSets([]);
     
+    // Filter only reading question sets
+    const readingSets = questionSets.filter(set => set.type === 'reading');
+    
     const setsByPart: { [key: string]: QuestionSet[] } = {};
-    questionSets.forEach(set => {
+    readingSets.forEach(set => {
       if (!setsByPart[set.part]) {
         setsByPart[set.part] = [];
       }
@@ -138,11 +140,34 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
     return true;
   };
 
+  // Check if title is unique (debounced)
+  useEffect(() => {
+    if (!testTitle.trim() || isEdit) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsCheckingTitle(true);
+        const tests = await TestsService.getTeacherTests();
+        const existingTest = tests.find((test: any) => 
+          test.title.toLowerCase().trim() === testTitle.toLowerCase().trim()
+        );
+        
+        if (existingTest) {
+          setTitleError('A test with this title already exists');
+        } else {
+          setTitleError('');
+        }
+      } catch (error) {
+        console.error('Error checking title uniqueness:', error);
+      } finally {
+        setIsCheckingTitle(false);
+      }
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [testTitle, isEdit]);
+
   const handleCreateTest = async () => {
-    console.log('handleCreateTest called');
-    console.log('testTitle:', testTitle);
-    console.log('selectedSets:', selectedSets);
-    
     if (!validateTitle(testTitle) || selectedSets.length === 0) {
       if (selectedSets.length === 0) {
         showToast('Please select at least one question set', 'error');
@@ -158,24 +183,27 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
       duration: durationMinutes * 60,
     };
     
-    console.log('About to call API with payload:', payload);
 
     try {
       if (isEdit && initialData?.id) {
-        console.log('Updating existing test');
         const updated = await TestsService.updateTest(initialData.id, payload);
         showToast('Test updated successfully', 'success');
         onSuccess(updated);
       } else {
-        console.log('Creating new test');
-        const created = await TestsService.createTest(payload);
-        console.log('Test created successfully:', created);
+        const created = await TestsService.createReadingTest(payload);
         showToast('Test created successfully', 'success');
         onSuccess(created);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(isEdit ? 'Error updating test:' : 'Error creating test:', error);
-      showToast('Failed to save test', 'error');
+      
+      // Handle unique title error
+      if (error.message && error.message.includes('Test title must be unique')) {
+        setTitleError('A test with this title already exists');
+        showToast('Test title must be unique', 'error');
+      } else {
+        showToast('Failed to save test', 'error');
+      }
     }
   };
   
@@ -192,17 +220,25 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="testTitle">Test Title</Label>
-                <Input
-                  id="testTitle"
-                  required
-                  value={testTitle}
-                  onChange={(e) => {
-                    setTestTitle(e.target.value);
-                    if (titleError) validateTitle(e.target.value);
-                  }}
-                  placeholder="Enter test title"
-                  className={titleError ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="testTitle"
+                    required
+                    value={testTitle}
+                    onChange={(e) => {
+                      setTestTitle(e.target.value);
+                      if (titleError) validateTitle(e.target.value);
+                    }}
+                    placeholder="Enter test title"
+                    className={`${titleError ? 'border-red-500' : ''} ${isCheckingTitle ? 'pr-8' : ''}`}
+                    disabled={isCheckingTitle}
+                  />
+                  {isCheckingTitle && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </div>
                 {titleError && <p className="text-red-500 text-xs mt-1">{titleError}</p>}
               </div>
               <div className="space-y-2">
@@ -276,10 +312,9 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
           <div className="flex justify-end">
             <Button 
               onClick={() => {
-                console.log('Create Test button clicked');
                 handleCreateTest();
               }}
-              disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1}
+              disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1 || isCheckingTitle}
               className="disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isEdit ? 'Save Changes' : 'Create Test'}
@@ -320,19 +355,7 @@ export default function TestCreationForm({ onSuccess, initialData, isEdit }: Tes
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="typeFilter" className="text-xs">Type</Label>
-                    <Select
-                      value={typeFilter}
-                      onValueChange={(value) => setTypeFilter(value as any)}
-                    >
-                      <option value="all">All Types</option>
-                      <option value="reading">Reading</option>
-                      <option value="listening">Listening</option>
-                    </Select>
-                  </div>
-                  
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="partFilter" className="text-xs">Part</Label>
                     <Select

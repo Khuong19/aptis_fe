@@ -19,17 +19,17 @@ export default function TestTable({ tests, showToast }: TestTableProps) {
   };
   
   const handleEdit = (id: string) => {
-    showToast(`Đang chỉnh sửa bài kiểm tra #${id}`);
+    showToast(`Editing test #${id}`);
     setActiveDropdown(null);
   };
   
   const handleDelete = (id: string) => {
-    showToast(`Đã xóa bài kiểm tra #${id}`);
+    showToast(`Deleted test #${id}`);
     setActiveDropdown(null);
   };
   
   const handleClone = (id: string) => {
-    showToast(`Đã sao chép bài kiểm tra #${id}`);
+    showToast(`Cloned test #${id}`);
     setActiveDropdown(null);
   };
   
@@ -40,19 +40,19 @@ export default function TestTable({ tests, showToast }: TestTableProps) {
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tiêu đề
+                Title
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Loại
+                Type
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trạng thái
+                Status
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ngày cập nhật
+                Updated At
               </th>
               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Thao tác
+                Actions
               </th>
             </tr>
           </thead>
@@ -73,7 +73,7 @@ export default function TestTable({ tests, showToast }: TestTableProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    test.status === 'Public' 
+                    test.status === 'Published' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
@@ -81,7 +81,7 @@ export default function TestTable({ tests, showToast }: TestTableProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(test.updatedAt).toLocaleDateString('vi-VN')}
+                  {new Date(test.updatedAt).toLocaleDateString('en-US')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="relative inline-block text-left">
@@ -100,21 +100,21 @@ export default function TestTable({ tests, showToast }: TestTableProps) {
                             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                           >
                             <Edit size={16} className="mr-2" />
-                            Chỉnh sửa
+                            Edit
                           </button>
                           <button
                             onClick={() => handleClone(test.id)}
                             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                           >
                             <Copy size={16} className="mr-2" />
-                            Sao chép
+                            Copy
                           </button>
                           <button
                             onClick={() => handleDelete(test.id)}
                             className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
                           >
                             <Trash size={16} className="mr-2" />
-                            Xóa
+                            Delete
                           </button>
                         </div>
                       </div>

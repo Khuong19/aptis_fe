@@ -22,7 +22,7 @@ interface TestItem {
   questionSets: any[];
   totalQuestions: number;
   createdAt: string;
-  status: 'Draft' | 'Published' | 'Public' | 'Archived';
+  status: 'Draft' | 'Published';
   duration?: number; // optional until we store it
   type?: string; // reading/listening; derive later
 }
@@ -79,7 +79,7 @@ export default function TestsPage() {
   const filteredTests = tests.filter(test => {
     const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'Published' && (test.status === 'Public' || test.status === 'Published')) ||
+      (statusFilter === 'Published' && test.status === 'Published') ||
       (statusFilter === 'Draft' && test.status === 'Draft');
     const matchesType = typeFilter === 'all' || test.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -174,12 +174,12 @@ export default function TestsPage() {
                   </h2>
                   <span
                     className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      test.status === 'Public' 
+                      test.status === 'Published' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-amber-100 text-amber-800'
                     }`}
                   >
-                    {test.status === 'Public' ? 'Published' : 'Draft'}
+                    {test.status === 'Published' ? 'Published' : 'Draft'}
                   </span>
                 </div>
                 
@@ -221,7 +221,7 @@ export default function TestsPage() {
                 >
                   {test.status === 'Draft' ? 'Publish' : 'Unpublish'}
                 </button>
-                {(test.status === 'Draft' || test.status === 'Archived') && (
+                {(test.status === 'Draft') && (
                   <button
                     onClick={() => handleDeleteTest(test)}
                     className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"

@@ -102,32 +102,6 @@ const ListeningPart3: React.FC<ListeningPart3Props> = ({ previewData, onEdit }) 
 
   return (
     <div className="space-y-6">
-      {/* JSON Data Toggle */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Debug Information</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowJsonData(!showJsonData)}
-              className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {showJsonData ? 'Hide' : 'Show'} JSON Data
-            </Button>
-          </div>
-        </CardHeader>
-        {showJsonData && (
-          <CardContent>
-            <div className="bg-gray-100 p-4 rounded-md">
-              <h4 className="font-medium mb-2">Raw Preview Data:</h4>
-              <pre className="text-xs overflow-auto max-h-96 bg-white p-3 rounded border">
-                {JSON.stringify(previewData, null, 2)}
-              </pre>
-            </div>
-          </CardContent>
-        )}
-      </Card>
 
       {/* Title and Description */}
       <Card>

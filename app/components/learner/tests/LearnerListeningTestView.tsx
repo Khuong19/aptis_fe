@@ -122,7 +122,6 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   };
 
   const handleTestComplete = () => {
-    setIsTestComplete(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     if (onTestComplete) {
       onTestComplete(selectedAnswers, timeSpent);
@@ -295,7 +294,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={questionSet.monologue.audioUrl || "/audio/sample.mp3"}
             preload="metadata"
           />
         </div>
@@ -732,11 +731,11 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
               </button>
 
               <button
-                onClick={handleNext}
+                onClick={currentPartIndex === totalParts - 1 ? handleTestComplete : handleNext}
                 className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
                 {currentPartIndex === totalParts - 1
-                  ? "Finish Test"
+                  ? "Submit Test"
                   : "Next Part"}
               </button>
             </div>

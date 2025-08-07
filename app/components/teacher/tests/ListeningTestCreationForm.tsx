@@ -40,6 +40,7 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState('');
+  const [isCheckingTitle, setIsCheckingTitle] = useState(false);
   // Duration for listening tests (typically 35-40 minutes)
   const [durationMinutes, setDurationMinutes] = useState(
     initialData?.duration ? Math.floor(initialData.duration / 60) : 35
@@ -106,8 +107,11 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
   const handleAutoPick = () => {
     setSelectedSets([]);
     
+    // Filter only listening question sets
+    const listeningSets = questionSets.filter(set => set.type === 'listening');
+    
     const setsByPart: { [key: string]: QuestionSet[] } = {};
-    questionSets.forEach(set => {
+    listeningSets.forEach(set => {
       if (!setsByPart[set.part]) {
         setsByPart[set.part] = [];
       }
@@ -137,6 +141,33 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
     return true;
   };
 
+  // Check if title is unique (debounced)
+  useEffect(() => {
+    if (!testTitle.trim() || isEdit) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsCheckingTitle(true);
+        const tests = await TestsService.getTeacherTests();
+        const existingTest = tests.find((test: any) => 
+          test.title.toLowerCase().trim() === testTitle.toLowerCase().trim()
+        );
+        
+        if (existingTest) {
+          setTitleError('A test with this title already exists');
+        } else {
+          setTitleError('');
+        }
+      } catch (error) {
+        console.error('Error checking title uniqueness:', error);
+      } finally {
+        setIsCheckingTitle(false);
+      }
+    }, 500); // Debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [testTitle, isEdit]);
+
   const handleCreateTest = async () => {
     if (!validateTitle(testTitle) || selectedSets.length === 0) {
       if (selectedSets.length === 0) {
@@ -164,9 +195,16 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
         showToast('Listening test created successfully', 'success');
         onSuccess(created);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(isEdit ? 'Error updating test:' : 'Error creating test:', error);
-      showToast('Failed to save listening test', 'error');
+      
+      // Handle unique title error
+      if (error.message && error.message.includes('Test title must be unique')) {
+        setTitleError('A test with this title already exists');
+        showToast('Test title must be unique', 'error');
+      } else {
+        showToast('Failed to save listening test', 'error');
+      }
     }
   };
 
@@ -201,17 +239,25 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="testTitle">Test Title</Label>
-                <Input
-                  id="testTitle"
-                  required
-                  value={testTitle}
-                  onChange={(e) => {
-                    setTestTitle(e.target.value);
-                    if (titleError) validateTitle(e.target.value);
-                  }}
-                  placeholder="Enter listening test title"
-                  className={titleError ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="testTitle"
+                    required
+                    value={testTitle}
+                    onChange={(e) => {
+                      setTestTitle(e.target.value);
+                      if (titleError) validateTitle(e.target.value);
+                    }}
+                    placeholder="Enter listening test title"
+                    className={`${titleError ? 'border-red-500' : ''} ${isCheckingTitle ? 'pr-8' : ''}`}
+                    disabled={isCheckingTitle}
+                  />
+                  {isCheckingTitle && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </div>
                 {titleError && <p className="text-red-500 text-xs mt-1">{titleError}</p>}
               </div>
               <div className="space-y-2">
@@ -295,7 +341,7 @@ export default function ListeningTestCreationForm({ onSuccess, initialData, isEd
           <div className="flex justify-end">
             <Button 
               onClick={handleCreateTest}
-              disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1}
+              disabled={selectedSets.length === 0 || !testTitle.trim() || titleError !== '' || durationMinutes < 1 || isCheckingTitle}
               className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Headphones className="h-4 w-4 mr-2" />

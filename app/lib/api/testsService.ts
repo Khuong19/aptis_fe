@@ -8,12 +8,12 @@ export interface CreateTestPayload {
   questionSets: any[];
   status?: 'Draft' | 'Published';
   duration?: number;
-  type?: 'reading' | 'listening' | 'mixed';
+  type?: 'reading' | 'listening';
 }
 
 export class TestsService {
   /**
-   * Tạo bài test mới
+   * Create a new test
    */
   static async createTest(payload: CreateTestPayload) {
     try {
@@ -36,7 +36,7 @@ export class TestsService {
   }
 
   /**
-   * Lấy danh sách test của giáo viên hiện tại
+   * Get list of tests for the current teacher
    */
   static async getTeacherTests() {
     try {
@@ -72,7 +72,7 @@ export class TestsService {
   }
 
   /**
-   * Lấy chi tiết một bài test
+   * Get details of a test
    */
   static async getTestById(id: string) {
     try {
@@ -90,9 +90,9 @@ export class TestsService {
   }
 
   /**
-   * Lấy danh sách test theo loại (reading/listening)
+   * Get list of tests by type (reading/listening)
    */
-  static async getTestsByType(type: 'reading' | 'listening' | 'mixed') {
+  static async getTestsByType(type: 'reading' | 'listening') {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/teacher/tests?type=${type}`);
       if (!response.ok) {
@@ -108,7 +108,7 @@ export class TestsService {
   }
 
   /**
-   * Tạo listening test mới
+   * Create a new listening test
    */
   static async createListeningTest(payload: CreateTestPayload) {
     const listeningPayload = {
@@ -119,7 +119,18 @@ export class TestsService {
   }
 
   /**
-   * Xóa test
+   * Create a new reading test
+   */
+  static async createReadingTest(payload: CreateTestPayload) {
+    const readingPayload = {
+      ...payload,
+      type: 'reading' as const
+    };
+    return this.createTest(readingPayload);
+  }
+
+  /**
+   * Delete test
    */
   static async deleteTest(id: string) {
     try {

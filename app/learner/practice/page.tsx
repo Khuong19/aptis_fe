@@ -12,8 +12,6 @@ import toast from 'react-hot-toast';
 export default function Practice() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [durationFilter, setDurationFilter] = useState<number | null>(null);
-  const [difficultyFilter, setDifficultyFilter] = useState<string | null>(null);
   const [tests, setTests] = useState<LearnerTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'title' | 'duration' | 'createdAt'>('title');
@@ -51,7 +49,7 @@ export default function Practice() {
         
         setTests(availableTests);
         if (availableTests.length === 0) {
-          toast('No tests available at the moment', { icon: 'ℹ️' });
+          toast.error('No tests available at the moment');
         }
       } catch (err) {
         console.error('Error fetching tests:', err);
@@ -69,26 +67,21 @@ export default function Practice() {
   // Ensure tests is an array before filtering
   const testsArray = Array.isArray(tests) ? tests : [];
   
-  const filteredAndSortedTests = testsArray
+    const filteredAndSortedTests = testsArray
     .filter(test => {
+      // Only show tests with status "Published" (from API response)
+      const isPublic = test.status === 'Published';
+      
       // Search filter
       const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Type filter
-      const matchesType = selectedType ? test.type === selectedType : true;
+      // Type filter - compare with lowercase
+      const matchesType = selectedType ? test.type?.toLowerCase() === selectedType.toLowerCase() : true;
       
-      // Duration filter
-      const matchesDuration = durationFilter ? test.duration <= durationFilter : true;
-      
-      // Difficulty filter
-      const matchesDifficulty = difficultyFilter ? test.difficulty === difficultyFilter : true;
-      
-      return matchesSearch && matchesType && matchesDuration && matchesDifficulty;
+      return isPublic && matchesSearch && matchesType;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'duration':
-          return a.duration - b.duration;
         case 'createdAt':
           // Use string comparison instead of Date objects to avoid hydration issues
           const dateA = a.lastAttempt || '';
@@ -130,7 +123,6 @@ export default function Practice() {
             className="rounded-md border border-gray-300 py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#152C61] focus:border-[#152C61]"
           >
             <option value="title">Title</option>
-            <option value="duration">Duration</option>
             <option value="createdAt">Recently Added</option>
           </select>
         </div>
@@ -139,10 +131,6 @@ export default function Practice() {
       <TestFilters 
         selectedType={selectedType}
         setSelectedType={setSelectedType}
-        durationFilter={durationFilter}
-        setDurationFilter={setDurationFilter}
-        difficultyFilter={difficultyFilter}
-        setDifficultyFilter={setDifficultyFilter}
       />
       
       {loading ? (

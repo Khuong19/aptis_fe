@@ -1,66 +1,50 @@
-import { LearnerProfile } from '@/app/types';
-import { CheckCircle, Clock } from 'lucide-react';
+import { UserProfile } from '@/app/lib/api/profileService';
+import { User, Calendar, Award } from 'lucide-react';
 
 interface ProfileStatsProps {
-  profile: LearnerProfile;
+  profile: UserProfile;
 }
 
 export default function ProfileStats({ profile }: ProfileStatsProps) {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Your Progress</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">Profile Information</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+              <User size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Role</p>
+              <h3 className="text-lg font-semibold text-gray-900 capitalize">{profile.role}</h3>
+            </div>
+          </div>
+          
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-              <CheckCircle size={24} />
+              <Calendar size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Completed Tests</p>
-              <h3 className="text-2xl font-semibold text-gray-900">{profile.completedTests}</h3>
-            </div>
-          </div>
-          
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-              <Clock size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">In Progress</p>
-              <h3 className="text-2xl font-semibold text-gray-900">{profile.inProgressTests}</h3>
+              <p className="text-sm text-gray-500">Member Since</p>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </h3>
             </div>
           </div>
         </div>
         
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-md font-medium text-gray-900 mb-4">Overall Progress</h3>
-          
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span>Completion Rate</span>
-              <span className="font-medium">
-                {profile.completedTests > 0 
-                  ? Math.round((profile.completedTests / (profile.completedTests + profile.inProgressTests)) * 100)
-                  : 0}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-[#152C61] h-2.5 rounded-full" 
-                style={{ 
-                  width: profile.completedTests > 0 
-                    ? `${Math.round((profile.completedTests / (profile.completedTests + profile.inProgressTests)) * 100)}%`
-                    : '0%'
-                }}
-              ></div>
-            </div>
+        {profile.bio && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="text-md font-medium text-gray-900 mb-4">About</h3>
+            <p className="text-sm text-gray-600">{profile.bio}</p>
           </div>
-          
-          <div className="text-sm text-gray-500">
-            <p>Keep up the good work! Complete your in-progress tests to improve your skills.</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

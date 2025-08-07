@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import TeacherLayout from '@/app/components/teacher/layout/TeacherLayout';
 import TestView from '@/app/components/teacher/tests/TestView';
+import TeacherListeningTestView from '@/app/components/teacher/tests/TeacherListeningTestView';
 import { TestsService } from '@/app/lib/api/testsService';
 
 export default function ViewTestPage() {
@@ -47,9 +48,18 @@ export default function ViewTestPage() {
     );
   }
 
+  // Render different components based on test type
+  const renderTestView = () => {
+    if (test.type === 'listening') {
+      return <TeacherListeningTestView test={test} />;
+    } else {
+      return <TestView test={test} />;
+    }
+  };
+
   return (
     <TeacherLayout>
-      <TestView test={test} />
+      {renderTestView()}
     </TeacherLayout>
   );
 } 
