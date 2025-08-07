@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/app/components/ui/basic';
-import { CheckCircle, XCircle, Clock, Award, BarChart3, Headphones } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Award, BarChart3, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { LearnerTestsService } from '@/app/lib/api/learnerTestsService';
 import TestResultDisplay from './TestResultDisplay';
@@ -22,7 +22,7 @@ interface TestResult {
   testType?: 'reading' | 'listening';
 }
 
-interface LearnerListeningTestResultProps {
+interface LearnerReadingTestResultProps {
   test: any;
   answers: Record<string, string>;
   timeSpent: number;
@@ -30,7 +30,7 @@ interface LearnerListeningTestResultProps {
   onBackToTests?: () => void;
 }
 
-const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
+const LearnerReadingTestResult: React.FC<LearnerReadingTestResultProps> = ({
   test,
   answers,
   timeSpent,
@@ -48,12 +48,11 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
       try {
         setIsLoading(true);
         
-        
         const resultData = await LearnerTestsService.submitTest(
           test.id,
           answers,
           timeSpent,
-          'listening'
+          'reading'
         );
         
         setResult(resultData);
@@ -75,49 +74,51 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
   };
 
   const renderQuestionReview = (question: any, userAnswer: string, correctAnswer: string) => {
-    const isCorrect = userAnswer === correctAnswer;
+    const isCorrect = userAnswer.toUpperCase() === correctAnswer.toUpperCase();
     
     return (
       <div key={question.id} className="border rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-3">
           <h4 className="font-medium text-gray-900">{question.text}</h4>
-          {isCorrect ? (
-            <CheckCircle className="h-5 w-5 text-green-500" />
-          ) : (
-            <XCircle className="h-5 w-5 text-red-500" />
-          )}
+          <div className="flex items-center space-x-2">
+            {isCorrect ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-500" />
+            )}
+            <Badge variant={isCorrect ? "default" : "destructive"}>
+              {isCorrect ? 'Correct' : 'Incorrect'}
+            </Badge>
+          </div>
         </div>
-        
+
         <div className="space-y-2">
-          {Object.entries(question.options || {}).map(([key, value]) => (
-            <div
-              key={key}
-              className={`p-2 rounded border ${
-                key === correctAnswer
-                  ? 'bg-green-50 border-green-200'
-                  : key === userAnswer && !isCorrect
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{key}.</span>
-                <span>{value as string}</span>
-                <div className="flex items-center space-x-2">
-                  {key === correctAnswer && (
-                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                      Correct
-                    </Badge>
-                  )}
-                  {key === userAnswer && !isCorrect && (
-                    <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
-                      Your Answer
-                    </Badge>
-                  )}
-                </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">Your Answer:</span>
+            <span className={`text-sm ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+              {userAnswer || 'No answer'}
+            </span>
+          </div>
+          
+          {!isCorrect && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Correct Answer:</span>
+              <span className="text-sm text-green-600">{correctAnswer}</span>
+            </div>
+          )}
+
+          {question.options && (
+            <div className="mt-3">
+              <span className="text-sm font-medium text-gray-700">Options:</span>
+              <div className="mt-1 space-y-1">
+                {Object.entries(question.options).map(([key, value]) => (
+                  <div key={key} className="text-sm text-gray-600">
+                    <span className="font-medium">{key}:</span> {value as string}
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
     );
@@ -162,8 +163,6 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
     );
   }
 
-  // Use the new TestResultDisplay component for the score summary
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -171,9 +170,9 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Headphones className="h-8 w-8 text-purple-600" />
+              <BookOpen className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Listening Test Results</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Reading Test Results</h1>
                 <p className="text-gray-600">{test.title}</p>
               </div>
             </div>
@@ -187,7 +186,7 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
               {onRetake && (
                 <button
                   onClick={onRetake}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Retake Test
                 </button>
@@ -213,7 +212,7 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
                 accuracy: result.accuracy,
                 levelScore: result.levelScore,
                 level: result.level,
-                testType: 'listening'
+                testType: 'reading'
               }}
             />
           </div>
@@ -221,51 +220,25 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
           {/* Detailed Review */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Question Review</h3>
-              
-              <div className="space-y-4">
-                {result.questionDetails?.map((question: any) => {
-                  const userAnswer = answers[question.id] || '';
-                  const correctAnswer = result.correctAnswersMap[question.id] || '';
-                  return renderQuestionReview(question, userAnswer, correctAnswer);
-                })}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Question Review</h3>
+                <button
+                  onClick={() => setShowReview(!showReview)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {showReview ? 'Hide Review' : 'Show Review'}
+                </button>
               </div>
-
-              {(!result.questionDetails || result.questionDetails.length === 0) && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No detailed review available</p>
+              
+              {showReview && (
+                <div className="space-y-4">
+                  {result.questionDetails?.map((question: any) => {
+                    const userAnswer = answers[question.id] || '';
+                    const correctAnswer = result.correctAnswersMap[question.id] || '';
+                    return renderQuestionReview(question, userAnswer, correctAnswer);
+                  })}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Insights */}
-        <div className="mt-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Performance Insights</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600 mb-2">
-                  {Math.round((result.correctAnswers / result.totalQuestions) * 100)}%
-                </div>
-                <p className="text-sm text-blue-700">Accuracy Rate</p>
-              </div>
-              
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 mb-2">
-                  {result.correctAnswers}
-                </div>
-                <p className="text-sm text-green-700">Correct Answers</p>
-              </div>
-              
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600 mb-2">
-                  {formatTime(result.timeSpent)}
-                </div>
-                <p className="text-sm text-purple-700">Average Time per Question</p>
-              </div>
             </div>
           </div>
         </div>
@@ -274,4 +247,4 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
   );
 };
 
-export default LearnerListeningTestResult; 
+export default LearnerReadingTestResult;

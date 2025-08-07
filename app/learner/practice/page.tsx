@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import LearnerLayout from '@/app/components/learner/layout/LearnerLayout';
 import TestCard from '@/app/components/learner/practice/TestCard';
 import TestFilters from '@/app/components/learner/practice/TestFilters';
@@ -17,52 +17,64 @@ export default function Practice() {
   const [sortBy, setSortBy] = useState<'title' | 'duration' | 'createdAt'>('title');
 
   // Fetch tests from API
+  const fetchTests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await LearnerTestsService.getAvailableTests();
+      
+      // ✅ Simplified: Backend always returns { data: tests[] }
+      let availableTests: LearnerTest[] = [];
+      
+      if (response && typeof response === 'object' && 'data' in response) {
+        availableTests = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        // Fallback for direct array response
+        availableTests = response;
+      } else {
+        console.warn('Unexpected response format:', response);
+        availableTests = [];
+      }
+      
+      setTests(availableTests);
+      
+      if (availableTests.length === 0) {
+        console.log('No tests found, showing message');
+      }
+    } catch (err) {
+      console.error('Error fetching tests:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load tests';
+      toast.error(errorMessage);
+      setTests([]); // Ensure tests is always an array
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial fetch
   useEffect(() => {
-    const fetchTests = async () => {
-      try {
-        setLoading(true);
-        const response = await LearnerTestsService.getAvailableTests();
-        
-        // Handle different response structures
-        let availableTests: LearnerTest[] = [];
-        
-        if (Array.isArray(response)) {
-          // If response is already an array
-          availableTests = response;
-        } else if (response && typeof response === 'object') {
-          // If response is an object with a tests property or similar
-          // Use type assertion to tell TypeScript this is a record with potential string keys
-          const responseObj = response as Record<string, unknown>;
-          
-          if (responseObj.tests && Array.isArray(responseObj.tests)) {
-            availableTests = responseObj.tests as LearnerTest[];
-          } else if (responseObj.data && Array.isArray(responseObj.data)) {
-            availableTests = responseObj.data as LearnerTest[];
-          } else {
-            // Try to extract any array property from the response
-            const arrayProps = Object.values(responseObj).find(val => Array.isArray(val));
-            if (arrayProps) {
-              availableTests = arrayProps as LearnerTest[];
-            }
-          }
-        }
-        
-        setTests(availableTests);
-        if (availableTests.length === 0) {
-          toast.error('No tests available at the moment');
-        }
-      } catch (err) {
-        console.error('Error fetching tests:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load tests';
-        toast.error(errorMessage);
-        setTests([]); // Ensure tests is always an array
-      } finally {
-        setLoading(false);
+    fetchTests();
+  }, [fetchTests]);
+  
+  // ✅ Refresh data when page becomes visible (user returns from another tab/page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTests();
       }
     };
-
-    fetchTests();
-  }, []);
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchTests]);
+  
+  // ✅ Auto-refresh every 5 minutes to pick up new tests
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchTests();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [fetchTests]);
   
   // Ensure tests is an array before filtering
   const testsArray = Array.isArray(tests) ? tests : [];
@@ -70,7 +82,7 @@ export default function Practice() {
     const filteredAndSortedTests = testsArray
     .filter(test => {
       // Only show tests with status "Published" (from API response)
-      const isPublic = test.status === 'Published';
+      const isPublished = test.status === 'Published';
       
       // Search filter
       const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -78,7 +90,7 @@ export default function Practice() {
       // Type filter - compare with lowercase
       const matchesType = selectedType ? test.type?.toLowerCase() === selectedType.toLowerCase() : true;
       
-      return isPublic && matchesSearch && matchesType;
+      return isPublished && matchesSearch && matchesType;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -150,8 +162,15 @@ export default function Practice() {
         <>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              Showing {filteredAndSortedTests.length} test{filteredAndSortedTests.length !== 1 ? 's' : ''}
+              Showing {filteredAndSortedTests.length} test{filteredAndSortedTests.length !== 1 ? 's' : ''} out of {tests.length} total
             </p>
+            <button
+              onClick={fetchTests}
+              disabled={loading}
+              className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedTests.map((test) => (
@@ -164,12 +183,21 @@ export default function Practice() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {tests.length === 0 ? 'No tests available' : 'No tests found'}
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-500 mb-4">
             {tests.length === 0 
               ? 'No published tests are currently available. Please check back later.'
               : 'No tests match your current search or filters. Try adjusting your criteria.'
             }
           </p>
+          {tests.length === 0 && (
+            <button
+              onClick={fetchTests}
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Refreshing...' : 'Refresh Tests'}
+            </button>
+          )}
         </div>
       )}
     </LearnerLayout>

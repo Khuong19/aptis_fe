@@ -184,7 +184,7 @@ const TeacherListeningTestView: React.FC<TeacherListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={questionSet.audioUrl}
             preload="metadata"
           />
         </div>
@@ -246,7 +246,7 @@ const TeacherListeningTestView: React.FC<TeacherListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={questionSet.audioUrl}
             preload="metadata"
           />
         </div>
@@ -313,7 +313,7 @@ const TeacherListeningTestView: React.FC<TeacherListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={questionSet.audioUrl}
             preload="metadata"
           />
         </div>
