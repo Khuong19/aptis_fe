@@ -163,7 +163,12 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={currentConversation.audioUrl}
+            src={`${
+              process.env.NEXT_PUBLIC_API_URL
+            }/${currentConversation.audioUrl?.replace(
+              "http://localhost:5000/api/",
+              ""
+            )}`}
             preload="metadata"
           />
         </div>
@@ -294,7 +299,14 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.monologue.audioUrl || "/audio/sample.mp3"}
+            src={
+              `${
+                process.env.NEXT_PUBLIC_API_URL
+              }/${questionSet.monologue?.audioUrl?.replace(
+                "http://localhost:5000/api/",
+                ""
+              )}` || "/audio/sample.mp3"
+            }
             preload="metadata"
           />
         </div>
@@ -305,12 +317,10 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
             const questionKey = `${questionSet.id}-${index}`;
 
             const options = {
-              A: "finds the language challenging",
-              B: "was fascinated by the magical aspects",
-              C: "thinks the story is not very interesting",
-              D: "appreciates the modern-day relevance",
-              E: "enjoys the character development",
-              F: "prefers the original text",
+              A: questions[0].sentence,
+              B: questions[1].sentence,
+              C: questions[2].sentence,
+              D: questions[3].sentence,
             };
 
             return (
@@ -379,7 +389,14 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={
+              `${
+                process.env.NEXT_PUBLIC_API_URL
+              }/${questionSet.audioUrl?.replace(
+                "http://localhost:5000/api/",
+                ""
+              )}` || "/audio/sample.mp3"
+            }
             preload="metadata"
           />
         </div>
@@ -463,7 +480,14 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={questionSet.audioUrl || "/audio/sample.mp3"}
+            src={
+              `${
+                process.env.NEXT_PUBLIC_API_URL
+              }/${questionSet.audioUrl?.replace(
+                "http://localhost:5000/api/",
+                ""
+              )}` || "/audio/sample.mp3"
+            }
             preload="metadata"
           />
         </div>
@@ -731,7 +755,11 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
               </button>
 
               <button
-                onClick={currentPartIndex === totalParts - 1 ? handleTestComplete : handleNext}
+                onClick={
+                  currentPartIndex === totalParts - 1
+                    ? handleTestComplete
+                    : handleNext
+                }
                 className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
                 {currentPartIndex === totalParts - 1
