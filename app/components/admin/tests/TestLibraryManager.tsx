@@ -1,30 +1,42 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Test } from '../../../types';
 import { Trash2, Eye, Edit, CheckCircle, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+type TestStatus = 'Published' | 'Draft';
+
+interface AdminTest {
+  id: string;
+  title: string;
+  description: string;
+  status: TestStatus;
+  duration: number; // minutes
+  questions: number; // total questions
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
 interface TestLibraryManagerProps {
-  tests: Test[];
-  onStatusChange?: (testId: string, newStatus: 'Public' | 'Draft') => Promise<void>;
+  tests?: AdminTest[];
+  onStatusChange?: (testId: string, newStatus: TestStatus) => Promise<void>;
   onDelete?: (testId: string) => Promise<void>;
 }
 
 const TestLibraryManager: React.FC<TestLibraryManagerProps> = ({ 
-  tests, 
+  tests = [],
   onStatusChange = async () => {}, 
   onDelete = async () => {} 
 }) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Public' | 'Draft'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Published' | 'Draft'>('all');
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   
   // Filter tests
   const filteredTests = useMemo(() => {
-    return tests.filter(test => {
+    return tests.filter((test: any) => {
       // Filter by search term
       const matchesSearch = 
         test.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -35,7 +47,7 @@ const TestLibraryManager: React.FC<TestLibraryManagerProps> = ({
       
       return matchesSearch && matchesStatus;
     });
-  }, [tests, searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter]);
   
   // Format date
   const formatDate = (dateString: string) => {
@@ -61,8 +73,8 @@ const TestLibraryManager: React.FC<TestLibraryManagerProps> = ({
   };
 
   // Handle status change
-  const handleStatusChange = async (testId: string, currentStatus: 'Public' | 'Draft') => {
-    const newStatus = currentStatus === 'Public' ? 'Draft' : 'Public';
+  const handleStatusChange = async (testId: string, currentStatus: 'Published' | 'Draft') => {
+    const newStatus = currentStatus === 'Published' ? 'Draft' : 'Published';
     
     try {
       setIsLoading(prev => ({ ...prev, [testId]: true }));
@@ -138,9 +150,9 @@ const TestLibraryManager: React.FC<TestLibraryManagerProps> = ({
             All
           </button>
           <button
-            onClick={() => setStatusFilter('Public')}
+            onClick={() => setStatusFilter('Published')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors 
-              ${statusFilter === 'Public' 
+              ${statusFilter === 'Published' 
                 ? 'bg-green-600 text-white' 
                 : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
           >
@@ -162,19 +174,19 @@ const TestLibraryManager: React.FC<TestLibraryManagerProps> = ({
       <div className="overflow-hidden overflow-x-auto">
         <div className="min-w-full divide-y divide-gray-200">
           {filteredTests.length > 0 ? (
-            filteredTests.map((test) => (
+            filteredTests.map((test: any) => (
               <div key={test.id} className="p-6 flex flex-col lg:flex-row lg:items-center border-b border-gray-200">
                 <div className="flex-1">
                   <div className="flex items-center">
                     <h3 className="text-lg font-bold text-gray-900">{test.title}</h3>
                     <span
                       className={`ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium 
-                        ${test.status === 'Public' 
+                        ${test.status === 'Published' 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-amber-100 text-amber-800'
                         }`}
                     >
-                      {test.status === 'Public' ? 'Public' : 'Draft'}
+                        {test.status === 'Published' ? 'Published' : 'Draft'}
                     </span>
                   </div>
                   

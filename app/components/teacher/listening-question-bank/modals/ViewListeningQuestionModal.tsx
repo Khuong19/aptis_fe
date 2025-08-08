@@ -83,7 +83,7 @@ interface Part4PreviewData extends BasePreviewData {
   monologue?: never;
   speakers?: never;
   discussion?: never;
-  questions?: never;
+  questions: any[]; // allow empty array to satisfy ListeningPart4 props
   passages?: never;
 }
 

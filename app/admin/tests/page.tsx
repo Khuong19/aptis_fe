@@ -3,7 +3,6 @@
 import React from 'react';
 import AdminLayout from '../../components/admin/layout/AdminLayout';
 import TestLibraryManager from '../../components/admin/tests/TestLibraryManager';
-import { dummyTests } from '../../lib/data/tests';
 
 export default function TestsPage() {
   return (
@@ -17,7 +16,7 @@ export default function TestsPage() {
         </div>
         
         <div className="mt-6">
-          <TestLibraryManager tests={dummyTests} />
+          <TestLibraryManager />
         </div>
       </div>
     </AdminLayout>

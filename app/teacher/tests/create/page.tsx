@@ -1,28 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TeacherLayout from '@/app/components/teacher/layout/TeacherLayout';
 import TestCreationForm from '@/app/components/teacher/tests/TestCreationForm';
 import ListeningTestCreationForm from '@/app/components/teacher/tests/ListeningTestCreationForm';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { showToast } from '@/app/components/ui/ToastContainer';
 
-export default function CreateTestPage() {
+function CreateTestContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const testType = searchParams.get('type') || 'reading';
 
   const handleTestCreationSuccess = (testData: any) => {
     router.push('/teacher/tests');
-    // Toast message is already handled in the form components
   };
 
   return (
-    <TeacherLayout>
+    <>
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -49,6 +46,16 @@ export default function CreateTestPage() {
           <TestCreationForm onSuccess={handleTestCreationSuccess} />
         )}
       </div>
+    </>
+  );
+}
+
+export default function CreateTestPage() {
+  return (
+    <TeacherLayout>
+      <Suspense fallback={<div>Loading...</div>}>
+        <CreateTestContent />
+      </Suspense>
     </TeacherLayout>
   );
 }

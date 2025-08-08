@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 
 // Import shared types
 import { QuestionSet, Comment } from '@/app/types/question-bank';
-import { mockUser, mockComments } from '@/app/lib/mock-data';
 import { QuestionBankService } from '@/app/lib/api/questionBankService';
+import { useAuthContext } from '@/app/lib/contexts/AuthContext';
 
 // Import components
 import QuestionBankHeader from '../components/QuestionBankHeader';
@@ -15,6 +15,7 @@ import EmptyQuestionBankState from '../components/EmptyQuestionBankState';
 import QuestionBankModals from '../components/QuestionBankModals';
 
 export default function EnhancedQuestionBankManager() {
+  const { user } = useAuthContext();
   // State for tabs
   const [activeTab, setActiveTab] = useState<'ai' | 'excel' | 'manual' | 'my-sets'>('ai');
   
@@ -39,7 +40,7 @@ export default function EnhancedQuestionBankManager() {
   
   // Data state
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
-  const [comments, setComments] = useState<Comment[]>(mockComments);
+  const [comments, setComments] = useState<Comment[]>([]);
   
   // Loading and error state
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,8 +88,8 @@ export default function EnhancedQuestionBankManager() {
     // Visibility filter (all/my/public)
     const matchesVisibility = 
       visibilityFilter === 'all' ||
-      (visibilityFilter === 'my' && qs.authorId === mockUser.id) ||
-      (visibilityFilter === 'public' && qs.isPublic && qs.authorId !== mockUser.id);
+      (visibilityFilter === 'my' && user?.id && qs.authorId === user.id) ||
+      (visibilityFilter === 'public' && qs.isPublic && (!user?.id || qs.authorId !== user.id));
     
     // Part filter (if applicable)
     const matchesPart = partFilter === 'all' || 
@@ -173,8 +174,8 @@ export default function EnhancedQuestionBankManager() {
     const newComment: Comment = {
       id: `comment-${Date.now()}`,
       questionSetId,
-      authorId: mockUser.id,
-      authorName: mockUser.name,
+      authorId: user?.id || 'unknown',
+      authorName: (user as any)?.fullName || 'Unknown',
       text,
       createdAt: new Date().toISOString()
     };
@@ -256,8 +257,8 @@ export default function EnhancedQuestionBankManager() {
         isNewModalOpen={isNewModalOpen}
         setIsNewModalOpen={setIsNewModalOpen}
         handleCreateQuestionSet={handleCreateQuestionSet}
-        currentUserId={mockUser.id}
-        currentUserName={mockUser.name}
+        currentUserId={user?.id || ''}
+        currentUserName={(user as any)?.fullName || 'Unknown'}
         
         // View Question Set Modal
         isViewModalOpen={isViewModalOpen}

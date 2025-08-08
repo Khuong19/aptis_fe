@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 
 // Import shared types
 import { QuestionSet, Comment } from '@/app/types/question-bank';
-import { mockUser, mockComments } from '@/app/lib/mock-data';
 import { ListeningQuestionBankService } from '@/app/lib/api/listeningQuestionBankService';
+import { useAuthContext } from '@/app/lib/contexts/AuthContext';
 
 // Import components
 import ListeningQuestionBankHeader from '../components/ListeningQuestionBankHeader';
@@ -15,6 +15,7 @@ import EmptyListeningQuestionBankState from '../components/EmptyListeningQuestio
 import ListeningQuestionBankModals from '../components/ListeningQuestionBankModals';
 
 export default function ListeningQuestionBankManager() {
+  const { user } = useAuthContext();
   // State for tabs
   const [activeTab, setActiveTab] = useState<'ai' | 'excel' | 'manual'>('ai');
   
@@ -39,7 +40,7 @@ export default function ListeningQuestionBankManager() {
   
   // Data state
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
-  const [comments, setComments] = useState<Comment[]>(mockComments);
+  const [comments, setComments] = useState<Comment[]>([]);
   
   // Loading and error state
   const [loading, setLoading] = useState<boolean>(true);
@@ -77,8 +78,8 @@ export default function ListeningQuestionBankManager() {
     // Visibility filter (all/my/public)
     const matchesVisibility = 
       visibilityFilter === 'all' ||
-      (visibilityFilter === 'my' && qs.authorId === mockUser.id) ||
-      (visibilityFilter === 'public' && qs.isPublic && qs.authorId !== mockUser.id);
+      (visibilityFilter === 'my' && user?.id && qs.authorId === user.id) ||
+      (visibilityFilter === 'public' && qs.isPublic && (!user?.id || qs.authorId !== user.id));
     
     // Part filter (if applicable)
     const matchesPart = partFilter === 'all' || 
@@ -162,8 +163,8 @@ export default function ListeningQuestionBankManager() {
     const newComment: Comment = {
       id: `comment-${Date.now()}`,
       questionSetId,
-      authorId: mockUser.id,
-      authorName: mockUser.name,
+      authorId: user?.id || 'unknown',
+      authorName: (user as any)?.fullName || 'Unknown',
       text,
       createdAt: new Date().toISOString()
     };
@@ -243,8 +244,8 @@ export default function ListeningQuestionBankManager() {
         isNewModalOpen={isNewModalOpen}
         setIsNewModalOpen={setIsNewModalOpen}
         handleCreateQuestionSet={handleCreateQuestionSet}
-        currentUserId={mockUser.id}
-        currentUserName={mockUser.name}
+        currentUserId={user?.id || ''}
+        currentUserName={(user as any)?.fullName || 'Unknown'}
         
         // View Question Set Modal
         isViewModalOpen={isViewModalOpen}

@@ -21,7 +21,7 @@ export default function TestReadingComponent() {
     try {
       setIsLoading(true);
       const tests = await LearnerTestsService.getAvailableTests();
-      const foundTest = tests.find(t => t.id === id);
+      const foundTest = tests.find((t: any) => t.id === id);
       
       if (foundTest) {
         setTest(foundTest);
