@@ -1,5 +1,5 @@
 import { fetchWithAuth } from '../auth/apiInterceptor';
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 export interface LearnerProfile {
   id: string;
   name: string;
@@ -45,7 +45,7 @@ export class LearnerDashboardService {
    */
   static async getLearnerProfile(): Promise<LearnerProfile> {
     try {
-      const response = await fetchWithAuth('/api/learner/profile');
+      const response = await fetchWithAuth(`${API_BASE_URL}/learner/profile`);
       if (!response.ok) {
         throw new Error('Failed to fetch learner profile');
       }
@@ -61,7 +61,7 @@ export class LearnerDashboardService {
    */
   static async getDashboardStats(): Promise<DashboardStats> {
     try {
-      const response = await fetchWithAuth('/api/learner/dashboard/stats');
+      const response = await fetchWithAuth(`${API_BASE_URL}/learner/dashboard/stats`);
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');
       }
@@ -77,7 +77,7 @@ export class LearnerDashboardService {
    */
   static async getRecentResults(limit: number = 5): Promise<RecentTestResult[]> {
     try {
-      const response = await fetchWithAuth(`/api/learner/tests/results?limit=${limit}&sort=recent`);
+      const response = await fetchWithAuth(`${API_BASE_URL}/learner/tests/results?limit=${limit}&sort=recent`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch recent results');
