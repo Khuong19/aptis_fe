@@ -10,7 +10,7 @@ interface LearnerTestViewProps {
   onTestComplete?: (answers: Record<string, string>, timeSpent: number) => void;
 }
 
-const DEFAULT_DURATION = 35 * 60; // 35 phút, đơn vị giây
+const DEFAULT_DURATION = 35 * 60; 
 
 const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -24,9 +24,6 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   // Process and normalize questionSets from the test data
   const questionSets = useMemo(() => test.data?.questionSets || test.questionSets || [], [test]);
   
-  // Debug data structure (removed to prevent re-render)
-  // console.log('Test data structure:', test);
-  // console.log('Question sets:', questionSets);
   const totalParts = questionSets.length;
   const currentQuestionSet = questionSets[currentPartIndex];
 
@@ -113,9 +110,7 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
     while ((match = gapRegex.exec(passage)) !== null) {
       const start = match.index;
       const end = gapRegex.lastIndex;
-      // Thêm text trước gap
       elements.push(<span key={`text-${gapCount}`}>{passage.slice(lastIndex, start)}</span>);
-      // Thêm dropdown tại vị trí gap
       const gapIdx = parseInt(match[1], 10) - 1;
       const question = questions[gapIdx];
       elements.push(
@@ -147,7 +142,7 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
       lastIndex = end;
       gapCount++;
     }
-    // Thêm phần còn lại của passage
+
     elements.push(<span key="text-last">{passage.slice(lastIndex)}</span>);
 
     return (
@@ -222,7 +217,7 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
     const passages = questionSet.passages || [];
     const questions = questionSet.questions || [];
 
-    // Lấy danh sách person (A, B, C, D)
+
     const personList = passages.map((p: any) => ({
       key: p.person || p.id,
       label: `Person ${p.person || p.id}`,
@@ -279,8 +274,6 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   };
 
   const renderCurrentPart = () => {
-    // console.log('Current question set:', currentQuestionSet);
-    
     if (!currentQuestionSet) {
       return <div className="flex items-center justify-center h-64"><p className="text-gray-500">No part available</p></div>;
     }

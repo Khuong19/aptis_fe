@@ -494,9 +494,6 @@ export default function OfficialQuestionUploadForm({ onSuccess }: OfficialQuesti
       return question;
     }).filter(Boolean); // Filter out null entries
     
-    // Debug logging
-    console.log('Part 3 Processing - Final result:', { passages, questions });
-    
     return [{
       passages,
       questions

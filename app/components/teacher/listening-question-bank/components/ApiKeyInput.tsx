@@ -69,7 +69,7 @@ export default function ApiKeyInput({
     
     switch (type) {
       case 'elevenlabs':
-        return value.startsWith('sk-') && value.length >= 32;
+        return value.startsWith('sk_') && value.length >= 32;
       case 'gemini':
         return value.length >= 32;
       default:
@@ -138,13 +138,13 @@ export default function ApiKeyInput({
                 type={showElevenLabsInput ? "text" : "password"}
                 value={localKeys.elevenlabs}
                 onChange={(e) => handleKeyChange('elevenlabs', e.target.value)}
-                placeholder="sk-..."
+                placeholder="sk_..."
                 className={`${!isValidFormat('elevenlabs', localKeys.elevenlabs) && localKeys.elevenlabs ? 'border-red-500' : ''}`}
               />
               {!isValidFormat('elevenlabs', localKeys.elevenlabs) && localKeys.elevenlabs && (
                 <p className="text-xs text-red-600 flex items-center space-x-1">
                   <AlertCircle className="w-3 h-3" />
-                  <span>Invalid format. Should start with 'sk-' and be at least 32 characters.</span>
+                  <span>Invalid format. Should start with 'sk_' and be at least 32 characters.</span>
                 </p>
               )}
             </div>
@@ -194,6 +194,7 @@ export default function ApiKeyInput({
         {hasChanges() && (
           <div className="flex justify-end">
             <Button
+              type="button"
               onClick={handleSave}
               disabled={isSaving}
               className="bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"

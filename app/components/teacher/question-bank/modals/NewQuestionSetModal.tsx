@@ -35,7 +35,6 @@ export default function NewQuestionSetModal({
     onClose();
   };
 
-  // Using a more direct approach for debugging
   if (!isOpen) return <></>;
   
   return (

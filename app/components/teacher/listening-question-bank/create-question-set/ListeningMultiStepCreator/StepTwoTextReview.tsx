@@ -42,11 +42,6 @@ export default function StepTwoTextReview({
   const [editedSegments, setEditedSegments] = useState<any[]>([]);
   const [editedQuestions, setEditedQuestions] = useState<any[]>([]);
 
-  // Debug logging to see actual data structure
-  console.log('StepTwoTextReview - stepData:', stepData);
-  console.log('StepTwoTextReview - monologue:', stepData.monologue);
-  console.log('StepTwoTextReview - questions:', stepData.questions);
-  console.log('StepTwoTextReview - generatedQuestions:', stepData.generatedQuestions);
 
   // Transform data to match the expected type for ListeningPart components
   const transformPreviewData = (data: typeof stepData) => {
@@ -96,9 +91,6 @@ export default function StepTwoTextReview({
   // Prepare preview data for the listening components
   const previewData = transformPreviewData(stepData);
   
-  // Debug logging for preview data
-  console.log('StepTwoTextReview - previewData after transform:', previewData);
-
   const handleEdit = (updatedData: any) => {
     const updates: Partial<StepData> = {};
     let hasActualChanges = false;

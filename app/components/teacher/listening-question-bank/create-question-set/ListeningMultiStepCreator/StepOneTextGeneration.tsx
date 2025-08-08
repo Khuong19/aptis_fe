@@ -77,9 +77,6 @@ export default function StepOneTextGeneration({
       if (result.success && result.data) {
         const generatedSet = result.data;
         
-        // Debug logging
-        console.log('StepOneTextGeneration - API response:', result);
-        console.log('StepOneTextGeneration - generatedSet:', generatedSet);
         
         const updatedData: Partial<StepData> = {
           generatedQuestions: generatedSet.questions || [],
@@ -94,8 +91,6 @@ export default function StepOneTextGeneration({
           lectures: generatedSet.lectures || [],
           textGenerated: true,
         };
-        
-        console.log('StepOneTextGeneration - updatedData:', updatedData);
         
         updateStepData(updatedData);
         setSuccess(true);

@@ -43,8 +43,6 @@ export default function ReadingTestPage() {
   const handleTestSelect = (testId: string) => {
     const selectedTest = tests.find(test => test.id === testId);
     
-    // Log the selected test structure for debugging (removed to prevent re-render)
-    // console.log('Selected test:', selectedTest);
     
     setSelectedTest(selectedTest || null);
   };

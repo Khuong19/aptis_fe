@@ -80,7 +80,7 @@ export class ApiKeysService {
 
     switch (type) {
       case 'elevenlabs':
-        return apiKey.startsWith('sk-') && apiKey.length >= 32;
+        return apiKey.startsWith('sk_') && apiKey.length >= 32;
       case 'gemini':
         return apiKey.length >= 32;
       default:

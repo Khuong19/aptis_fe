@@ -109,10 +109,6 @@ const ListeningPart2: React.FC<ListeningPart2Props> = ({ previewData, onEdit }) 
   // Get monologue segments or use empty array if not available
   const segments = previewData?.monologue?.segments || [];
   
-  // Debug logging for segments
-  console.log('ListeningPart2 - segments:', segments);
-  console.log('ListeningPart2 - segments length:', segments.length);
-
   const currentPassage = previewData?.passageText || previewData?.passage || '';
 
   const handleStartEditing = (idx: number) => {
