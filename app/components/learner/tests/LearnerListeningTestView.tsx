@@ -377,13 +377,30 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
     );
   };
 
-  // Part 3: Opinion matching
-  const renderListeningPart3 = (questionSet: any) => {
-    const questions = questionSet.questions || [];
+  // Part 3: Opinion matching (extracted to a component to respect Rules of Hooks)
+  function ListeningPart3View({
+    questionSet,
+    audioRef,
+    isPlaying,
+    onPlayPause,
+    selectedAnswers,
+    onSelect,
+    onBookmark,
+    bookmarked,
+  }: {
+    questionSet: any;
+    audioRef: React.RefObject<HTMLAudioElement>;
+    isPlaying: boolean;
+    onPlayPause: () => void;
+    selectedAnswers: Record<string, string>;
+    onSelect: (questionKey: string, answer: string) => void;
+    onBookmark: (questionKey: string) => void;
+    bookmarked: Set<string>;
+  }) {
+    const questions = questionSet?.questions || [];
     const [audioSrc, setAudioSrc] = useState<string>("/audio/sample.mp3");
     const [isLoadingAudio, setIsLoadingAudio] = useState(true);
 
-    // Load merged audio for Part 3
     useEffect(() => {
       const loadMergedAudio = async () => {
         try {
@@ -392,10 +409,9 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           setAudioSrc(mergedAudioUrl);
         } catch (error) {
           console.error('Error loading merged audio:', error);
-          // Fallback to first audio file
-          const audioFile = questionSet.audioFiles?.[0];
+          const audioFile = questionSet?.audioFiles?.[0];
           setAudioSrc(
-            audioFile 
+            audioFile
               ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${audioFile.replace("http://localhost:5000/api/uploads/", "")}`
               : "/audio/sample.mp3"
           );
@@ -417,9 +433,9 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
               the man, the woman, or both.
             </p>
             <button
-              onClick={() => handleBookmark(`${questionSet.id}-general`)}
+              onClick={() => onBookmark(`${questionSet.id}-general`)}
               className={`px-3 py-1 border rounded ${
-                bookmarkedQuestions.has(`${questionSet.id}-general`)
+                bookmarked.has(`${questionSet.id}-general`)
                   ? "bg-yellow-100 border-yellow-400"
                   : "border-gray-300"
               }`}
@@ -429,15 +445,14 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
         </div>
 
-        {/* Audio Player */}
         <div className="bg-white border rounded-lg p-4">
           <div className="flex items-center space-x-4">
             <button
-              onClick={handlePlayPause}
+              onClick={onPlayPause}
               disabled={isLoadingAudio}
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isLoadingAudio 
-                  ? "bg-gray-300 cursor-not-allowed" 
+                isLoadingAudio
+                  ? "bg-gray-300 cursor-not-allowed"
                   : "bg-blue-500 text-white hover:bg-blue-600"
               }`}
             >
@@ -447,20 +462,14 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
               {isLoadingAudio ? "Loading audio..." : "Play/Stop"}
             </span>
           </div>
-          <audio
-            ref={audioRef}
-            src={audioSrc}
-            preload="metadata"
-          />
+          <audio ref={audioRef} src={audioSrc} preload="metadata" />
         </div>
 
-        {/* Questions */}
         <div className="bg-white border rounded-lg p-6">
           <h3 className="font-medium mb-4">Who expresses which opinion?</h3>
           <div className="space-y-4">
             {questions.map((question: any, index: number) => {
               const questionKey = `${questionSet.id}-q${index}`;
-
               return (
                 <div key={index} className="flex items-center space-x-3">
                   <span className="font-medium w-6">{index + 1}.</span>
@@ -468,9 +477,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
                   <select
                     className="min-w-[150px] p-2 border border-gray-300 rounded"
                     value={selectedAnswers[questionKey] || ""}
-                    onChange={(e) =>
-                      handleAnswerSelect(questionKey, e.target.value)
-                    }
+                    onChange={(e) => onSelect(questionKey, e.target.value)}
                   >
                     <option value="">Select...</option>
                     {question.options &&
@@ -487,7 +494,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
         </div>
       </div>
     );
-  };
+  }
 
   // Part 4: Multiple choice with multiple questions
   const renderListeningPart4 = (questionSet: any) => {
@@ -643,7 +650,18 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
       case 2:
         return renderListeningPart2(currentQuestionSet);
       case 3:
-        return renderListeningPart3(currentQuestionSet);
+        return (
+          <ListeningPart3View
+            questionSet={currentQuestionSet}
+            audioRef={audioRef}
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+            selectedAnswers={selectedAnswers}
+            onSelect={handleAnswerSelect}
+            onBookmark={handleBookmark}
+            bookmarked={bookmarkedQuestions}
+          />
+        );
       case 4:
         return renderListeningPart4(currentQuestionSet);
       default:
