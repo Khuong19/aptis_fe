@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import LearnerLayout from '@/app/components/learner/layout/LearnerLayout';
 import LearnerTestView from '@/app/components/learner/tests/LearnerTestView';
+import LearnerReadingTestResult from '@/app/components/learner/tests/LearnerReadingTestResult';
 import { LearnerTestsService } from '@/app/lib/api/learnerTestsService';
 
 export default function TakeTestPage() {
@@ -13,6 +14,9 @@ export default function TakeTestPage() {
 
   const [test, setTest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestComplete, setIsTestComplete] = useState(false);
+  const [testAnswers, setTestAnswers] = useState<Record<string, string>>({});
+  const [testTimeSpent, setTestTimeSpent] = useState(0);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -20,7 +24,7 @@ export default function TakeTestPage() {
       try {
         setIsLoading(true);
         const data = await LearnerTestsService.getTestById(id);
-        setTest(data);
+        setTest(data.data);
       } catch (error) {
         console.error('Failed to fetch test:', error);
       } finally {
@@ -31,40 +35,24 @@ export default function TakeTestPage() {
     fetchTest();
   }, [id]);
 
-  const handleTestComplete = async (answers: Record<string, string>, timeSpent: number) => {
-    try {
-      // Calculate score based on answers
-      const totalQuestions = Object.keys(answers).length;
-      const correctAnswers = Object.entries(answers).filter(([key, value]) => {
-        // This is a simplified scoring logic - you'll need to implement proper scoring
-        return value && value.trim() !== '';
-      }).length;
-      
-      const score = Math.round((correctAnswers / totalQuestions) * 100);
+  const handleTestComplete = (answers: Record<string, string>, timeSpent: number) => {
+    console.log('Test completed!');
+    console.log('Answers:', answers);
+    console.log('Time spent:', timeSpent, 'seconds');
+    
+    setTestAnswers(answers);
+    setTestTimeSpent(timeSpent);
+    setIsTestComplete(true);
+  };
 
-      // Create test result
-      const testResult = {
-        id: `result-${Date.now()}`, // Generate temporary ID
-        testId: test.id,
-        testTitle: test.title,
-        type: test.type,
-        score,
-        dateTaken: new Date().toISOString(),
-        timeSpent: Math.floor(timeSpent / 60), // Convert to minutes
-        correctAnswers,
-        totalQuestions
-      };
+  const handleRetake = () => {
+    setIsTestComplete(false);
+    setTestAnswers({});
+    setTestTimeSpent(0);
+  };
 
-      // Save the result to backend
-      await LearnerTestsService.saveTestResult(testResult);
-      
-      // Redirect to results page
-      router.push('/learner/results');
-    } catch (error) {
-      console.error('Failed to save test result:', error);
-      // Still redirect even if save fails
-      router.push('/learner/results');
-    }
+  const handleBackToTests = () => {
+    router.push('/learner/practice');
   };
 
   if (isLoading) {
@@ -92,6 +80,18 @@ export default function TakeTestPage() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (isTestComplete) {
+    return (
+      <LearnerReadingTestResult
+        test={test}
+        answers={testAnswers}
+        timeSpent={testTimeSpent}
+        onRetake={handleRetake}
+        onBackToTests={handleBackToTests}
+      />
     );
   }
 

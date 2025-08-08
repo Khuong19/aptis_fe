@@ -78,4 +78,73 @@ export const checkAudioUrlExists = async (url: string): Promise<boolean> => {
 export const getListeningFolderName = (part: number, timestamp?: number): string => {
   const time = timestamp || Date.now();
   return `listening_${part}_${time}`;
+};
+
+/**
+ * Audio utilities for handling audio file operations
+ */
+
+/**
+ * Merge multiple audio files into a single audio element
+ * This is used for Listening Part 3 where we have multiple audio files
+ * that need to be played as one continuous audio
+ */
+export const createMergedAudioElement = (audioFiles: string[]): HTMLAudioElement => {
+  const audio = new Audio();
+  
+  if (!audioFiles || audioFiles.length === 0) {
+    audio.src = "/audio/sample.mp3";
+    return audio;
+  }
+
+  // For now, we'll use the first audio file
+  // In a real implementation, you would need to merge the audio files on the backend
+  const firstAudioFile = audioFiles[0];
+  const audioUrl = firstAudioFile 
+    ? `${process.env.NEXT_PUBLIC_API_URL}/${firstAudioFile.replace("http://localhost:5000/api/", "")}`
+    : "/audio/sample.mp3";
+  
+  audio.src = audioUrl;
+  audio.preload = "metadata";
+  
+  return audio;
+};
+
+/**
+ * Get the appropriate audio source for different listening parts
+ */
+export const getAudioSource = (questionSet: any, part: number, currentIndex: number = 0): string => {
+  switch (part) {
+    case 1:
+      // Part 1 uses individual audio for each conversation
+      const conversation = questionSet.conversations?.[currentIndex];
+      return conversation?.audioUrl 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/${conversation.audioUrl.replace("http://localhost:5000/api/", "")}`
+        : "/audio/sample.mp3";
+    
+    case 2:
+      // Part 2 uses monologue audio
+      return questionSet.monologue?.audioUrl 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/${questionSet.monologue.audioUrl.replace("http://localhost:5000/api/", "")}`
+        : "/audio/sample.mp3";
+    
+    case 3:
+      // Part 3 should use merged audio files
+      // For now, we'll use the first audio file
+      // TODO: Implement proper audio merging on backend
+      const audioFile = questionSet.audioFiles?.[0];
+      return audioFile 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/${audioFile.replace("http://localhost:5000/api/", "")}`
+        : "/audio/sample.mp3";
+    
+    case 4:
+      // Part 4 uses audio files for each lecture
+      const lectureAudio = questionSet.audioFiles?.[currentIndex];
+      return lectureAudio 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/${lectureAudio.replace("http://localhost:5000/api/", "")}`
+        : "/audio/sample.mp3";
+    
+    default:
+      return "/audio/sample.mp3";
+  }
 }; 

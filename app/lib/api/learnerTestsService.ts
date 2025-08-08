@@ -39,7 +39,6 @@ export class LearnerTestsService {
         testType,
       };
       
-      
       const response = await fetchWithAuth(`${API_BASE_URL}/learner/tests/submit`, {
         method: 'POST',
         headers: {
@@ -66,12 +65,19 @@ export class LearnerTestsService {
         ? `${API_BASE_URL}/learner/tests/results?testId=${testId}`
         : `${API_BASE_URL}/learner/tests/results`;
       
+      
       const response = await fetchWithAuth(url);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch test results');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to fetch test results');
       }
-      return await response.json();
-    } catch (error) {
+      
+      const data = await response.json();
+      
+      return data;
+    } catch (error: any) {
       console.error('LearnerTestsService.getTestResults error:', error);
       throw error;
     }
@@ -79,19 +85,29 @@ export class LearnerTestsService {
 
   static async getTestResultById(id: string): Promise<TestResult> {
     try {
-      const response = await fetch(`${API_BASE_URL}/test-results/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch test result');
+      const response = await LearnerTestsService.getTestResults();
+      const results = response.data || response;
+      
+      const result = results.find((r: any) => r.id === id);
+      
+      if (!result) {
+        throw new Error('Test result not found');
       }
 
-      return await response.json();
+      return {
+        id: result.id,
+        testId: result.testId,
+        testTitle: result.testTitle || result.title || 'Unnamed Test',
+        type: result.testType || result.type,
+        score: result.score || Math.round(result.accuracy || 0),
+        accuracy: result.accuracy || 0,
+        dateTaken: result.submittedAt || result.dateTaken,
+        timeSpent: result.timeSpent || 0,
+        correctAnswers: result.correctAnswers || 0,
+        totalQuestions: result.totalQuestions || 0,
+        level: result.level,
+        levelScore: result.levelScore
+      };
     } catch (error) {
       console.error('Error fetching test result:', error);
       throw error;
@@ -137,6 +153,28 @@ export class LearnerTestsService {
       return await response.json();
     } catch (error) {
       console.error('Error saving test progress:', error);
+      throw error;
+    }
+  }
+
+  static async saveTestResult(testResult: TestResult): Promise<any> {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/learner/tests/results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testResult),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save test result');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('LearnerTestsService.saveTestResult error:', error);
       throw error;
     }
   }

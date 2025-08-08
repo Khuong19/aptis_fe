@@ -89,35 +89,40 @@ const LearnerListeningTestResult: React.FC<LearnerListeningTestResultProps> = ({
         </div>
         
         <div className="space-y-2">
-          {Object.entries(question.options || {}).map(([key, value]) => (
-            <div
-              key={key}
-              className={`p-2 rounded border ${
-                key === correctAnswer
-                  ? 'bg-green-50 border-green-200'
-                  : key === userAnswer && !isCorrect
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{key}.</span>
-                <span>{value as string}</span>
-                <div className="flex items-center space-x-2">
-                  {key === correctAnswer && (
-                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                      Correct
-                    </Badge>
-                  )}
-                  {key === userAnswer && !isCorrect && (
-                    <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
-                      Your Answer
-                    </Badge>
-                  )}
+          {Object.entries(question.options || {}).map(([key, value]) => {
+            const isUserAnswer = key === userAnswer;
+            const isCorrectAnswer = key === correctAnswer;
+            
+            return (
+              <div
+                key={key}
+                className={`p-3 rounded-lg border transition-colors ${
+                  isCorrectAnswer
+                    ? 'bg-green-50 border-green-200'
+                    : isUserAnswer && !isCorrect
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{key}.</span>
+                  <span>{value as string}</span>
+                  <div className="flex items-center space-x-2">
+                    {isCorrectAnswer && (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                        Correct
+                      </Badge>
+                    )}
+                    {isUserAnswer && !isCorrect && (
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
+                        Your Answer
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

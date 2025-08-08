@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Badge } from '@/app/components/ui/basic';
 import { QuestionSet, Question, Passage } from '@/app/types/question-bank';
 import { useRouter } from 'next/navigation';
+import { SentenceOrderingComponent, OrderingSentence } from '@/app/components/learner/reading/SentenceOrderingComponent';
+import { SimpleReadingPart4Display } from '@/app/components/learner/practice/shared';
 
 interface LearnerTestViewProps {
   test: any;
@@ -20,13 +22,25 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   const [startTime] = useState<number>(Date.now());
   
   // Process and normalize questionSets from the test data
-  const questionSets = test.data?.questionSets || test.questionSets || [];
+  const questionSets = useMemo(() => test.data?.questionSets || test.questionSets || [], [test]);
   
-  // Debug data structure
-  console.log('Test data structure:', test);
-  console.log('Question sets:', questionSets);
+  // Debug data structure (removed to prevent re-render)
+  // console.log('Test data structure:', test);
+  // console.log('Question sets:', questionSets);
   const totalParts = questionSets.length;
   const currentQuestionSet = questionSets[currentPartIndex];
+
+  const handleTestComplete = useCallback(() => {
+    setIsTestComplete(true);
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    if (onTestComplete) {
+      // Use current selectedAnswers from state, not from dependency
+      setSelectedAnswers(currentAnswers => {
+        onTestComplete(currentAnswers, timeSpent);
+        return currentAnswers;
+      });
+    }
+  }, [startTime, onTestComplete]);
 
   useEffect(() => {
     if (timeLeft <= 0 && !isTestComplete) {
@@ -37,7 +51,7 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
       const timer = setInterval(() => setTimeLeft((t: number) => t - 1), 1000);
       return () => clearInterval(timer);
     }
-  }, [timeLeft, isTestComplete]);
+  }, [timeLeft, isTestComplete, handleTestComplete]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -48,25 +62,28 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   if (!test) return null;
 
   // Calculate total questions across all question sets
-  const totalQuestions = test.questionSets?.reduce((total: number, set: QuestionSet) => {
-    if (set.part === 1 || set.part === 3) {
-      return total + (set.questions?.length || 0);
-    } else if (set.part === 2) {
-      // Part 2 usually has 1 question with multiple sentences
-      return total + 1;
-    } else if (set.part === 4) {
-      // Part 4 has paragraphs to match with headings
-      return total + (set.paragraphs?.length || 0);
-    }
-    return total;
-  }, 0) || 0;
+  const totalQuestions = useMemo(() => {
+    return questionSets.reduce((total: number, set: QuestionSet) => {
+      if (set.part === 1 || set.part === 3) {
+        return total + (set.questions?.length || 0);
+      } else if (set.part === 2) {
+        // Part 2 usually has 1 question with multiple sentences
+        return total + 1;
+      } else if (set.part === 4) {
+        // Part 4 has questions array, filter out examples
+        const selectableQuestions = (set.questions || []).filter((q: any) => !q.isExample);
+        return total + selectableQuestions.length;
+      }
+      return total;
+    }, 0) || 0;
+  }, [questionSets]);
 
-  const handleAnswerSelect = (questionKey: string, answer: string) => {
+  const handleAnswerSelect = useCallback((questionKey: string, answer: string) => {
     setSelectedAnswers(prev => ({
       ...prev,
       [questionKey]: answer
     }));
-  };
+  }, []);
 
   const handleNext = () => {
     if (currentPartIndex < totalParts - 1) {
@@ -80,14 +97,6 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   const handleBack = () => {
     if (currentPartIndex > 0) {
       setCurrentPartIndex(prev => prev - 1);
-    }
-  };
-
-  const handleTestComplete = () => {
-    setIsTestComplete(true);
-    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    if (onTestComplete) {
-      onTestComplete(selectedAnswers, timeSpent);
     }
   };
 
@@ -163,31 +172,48 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   const renderReadingPart2 = (questionSet: QuestionSet) => {
     const sentences = questionSet.questions?.[0]?.sentences || [];
     
+    // Convert sentences to OrderingSentence format
+    const orderingSentences: OrderingSentence[] = sentences.map((sentence: any, index: number) => ({
+      id: sentence.id || `sentence-${index}`,
+      text: sentence.text || '',
+      isExample: sentence.isExample || false,
+      position: sentence.position || index
+    }));
+
+    // Get current order from selectedAnswers
+    const questionKey = `${questionSet.id}-part2-order`;
+    let currentOrder = [];
+    try {
+      currentOrder = selectedAnswers[questionKey] ? JSON.parse(selectedAnswers[questionKey]) : [];
+    } catch (error) {
+      console.warn('Failed to parse currentOrder:', error);
+      currentOrder = [];
+    }
+
+    const handleOrderChange = (newOrder: OrderingSentence[]) => {
+      // Save the order as JSON string
+      const orderIds = newOrder.map(sentence => sentence.id);
+      handleAnswerSelect(questionKey, JSON.stringify(orderIds));
+    };
+    
     return (
       <div className="space-y-6">
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-sm font-medium">
             The sentences below are from a biography. Order the sentences to make a story. The first sentence of the story is an example.
           </p>
+          <p className="text-xs text-gray-600 mt-2">
+            Drag and drop the sentences (except the example) to arrange them in the correct order.
+          </p>
         </div>
 
-        <div className="space-y-3">
-          {sentences.map((sentence: any, index: number) => (
-            <div 
-              key={sentence.id || index}
-              className={`p-4 border rounded-lg ${
-                sentence.isExample 
-                  ? 'bg-blue-50 border-blue-200' 
-                  : 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
-              }`}
-            >
-              <p className="text-sm">{sentence.text}</p>
-              {sentence.isExample && (
-                <Badge className="mt-2 bg-blue-100 text-blue-800">Example</Badge>
-              )}
-            </div>
-          ))}
-        </div>
+        <SentenceOrderingComponent
+          title="Order the sentences"
+          sentences={orderingSentences}
+          onOrderChange={handleOrderChange}
+          userAnswers={currentOrder}
+          readOnly={false}
+        />
       </div>
     );
   };
@@ -243,87 +269,17 @@ const LearnerTestView: React.FC<LearnerTestViewProps> = ({ test, onTestComplete 
   };
 
   const renderReadingPart4 = (questionSet: QuestionSet) => {
-    const rawHeadings = questionSet.headings || [];
-    const headings = Array.isArray(rawHeadings)
-      ? rawHeadings
-      : typeof rawHeadings === 'object' && rawHeadings !== null
-        ? Object.entries(rawHeadings).map(([id, text]) => ({ id, text }))
-        : [];
-    const passage = questionSet.passageText || questionSet.passage || '';
-    const title = questionSet.title || 'No title provided';
-
-    const paragraphs = passage
-      ? passage.split(/\n\s*\n/).map((text, idx) => ({ id: idx, text: text.trim() }))
-      : [];
-
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-        {/* Left side - Passage */}
-        <div className="space-y-4">
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="text-lg font-bold mb-4">{title || 'No title provided'}</h3>
-            <div className="space-y-4 text-sm leading-relaxed">
-              {paragraphs.map((para, index) => (
-                <div key={para.id} className="space-y-2">
-                  <p className="font-semibold text-gray-600">{index}.</p>
-                  <p className="whitespace-pre-wrap">{para.text}</p>
-                </div>
-              ))}
-            </div>  
-          </div>
-        </div>
-        {/* Right side - Headings to match */}
-        <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm font-medium mb-2">
-              Read the text. Match the headings to the paragraphs. The answer to question 0 is an example. There is one heading that you will not use.
-            </p>
-          </div>
-          <div className="bg-white border rounded-lg p-6">
-            <div className="space-y-3">
-              {paragraphs.map((_, idx) => {
-                const q = Array.isArray(questionSet.questions) ? questionSet.questions[idx] : undefined;
-                const options = q?.options || {};
-                const headingList = Object.entries(options).map(([key, text]) => ({
-                  key: key.replace('Heading', ''),
-                  text,
-                }));
-                const correctHeading = q?.answer || '';
-
-                return idx === 0 ? (
-                  <div key={idx} className="flex items-center space-x-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <span className="font-medium">{idx}.</span>
-                    <select className="flex-1 p-2 border rounded" value={correctHeading} disabled>
-                      {headingList.map(h => (
-                        <option key={h.key} value={h.key}>{String(h.text)}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div key={idx} className="flex items-center space-x-3 p-3 border rounded-lg">
-                    <span className="font-medium">{idx}.</span>
-                    <select
-                      className="flex-1 p-2 border rounded"
-                      value={selectedAnswers[`${questionSet?.id}-${idx}`] || ''}
-                      onChange={e => handleAnswerSelect(`${questionSet?.id}-${idx}`, e.target.value)}
-                    >
-                      <option value="">Select heading...</option>
-                      {headingList.map(h => (
-                        <option key={h.key} value={h.key}>{String(h.text)}</option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+      <SimpleReadingPart4Display
+        partData={questionSet}
+        answers={selectedAnswers}
+        onAnswerChange={handleAnswerSelect}
+      />
     );
   };
 
   const renderCurrentPart = () => {
-    console.log('Current question set:', currentQuestionSet);
+    // console.log('Current question set:', currentQuestionSet);
     
     if (!currentQuestionSet) {
       return <div className="flex items-center justify-center h-64"><p className="text-gray-500">No part available</p></div>;

@@ -45,7 +45,7 @@ function ErrorCard({ message }: { message: string }) {
 }
 
 export default function TeacherDashboardPage() {
-  const { statistics, loading, error, refetch } = useTeacherDashboard();
+  const { statistics, testResults, loading, error, refetch } = useTeacherDashboard();
 
   return (
     <TeacherLayout>
@@ -80,6 +80,9 @@ export default function TeacherDashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Students</p>
                   <h3 className="text-2xl font-bold text-gray-900">{statistics?.totalStudents || 0}</h3>
+                  {statistics?.totalStudents === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">No students have taken your tests yet</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -92,6 +95,9 @@ export default function TeacherDashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Tests</p>
                   <h3 className="text-2xl font-bold text-gray-900">{statistics?.totalTests || 0}</h3>
+                  {statistics?.totalTests === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">Create your first test to get started</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -104,6 +110,9 @@ export default function TeacherDashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Avg. Completion Rate</p>
                   <h3 className="text-2xl font-bold text-gray-900">{statistics?.averageCompletion || 0}%</h3>
+                  {statistics?.averageCompletion === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">No test completions yet</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -116,6 +125,9 @@ export default function TeacherDashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Avg. Score</p>
                   <h3 className="text-2xl font-bold text-gray-900">{statistics?.averageScore || 0}%</h3>
+                  {statistics?.averageScore === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">No test scores yet</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -132,6 +144,40 @@ export default function TeacherDashboardPage() {
           testTypeData={statistics?.testTypeData}
         />
       </div>
+
+      {/* Getting Started Guide */}
+      {!loading && !error && statistics && 
+       statistics.totalTests === 0 && statistics.totalStudents === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <div className="p-2 rounded-full bg-blue-100">
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-blue-900">Getting Started</h3>
+              <p className="text-blue-700 mt-1">
+                Welcome to your teacher dashboard! Here's how to get started:
+              </p>
+              <ul className="text-blue-700 mt-2 space-y-1 text-sm">
+                <li>• Create your first test using AI-generated questions</li>
+                <li>• Share test links with your students</li>
+                <li>• Monitor student performance and progress</li>
+                <li>• View detailed analytics and insights</li>
+              </ul>
+              <div className="mt-4">
+                <a 
+                  href="/teacher/tests" 
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Create Your First Test
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Test Results */}
       <div className="bg-white rounded-lg shadow-md">
@@ -173,8 +219,8 @@ export default function TeacherDashboardPage() {
                     </div>
                   </td>
                 </tr>
-              ) : statistics?.recentTestResults && statistics.recentTestResults.length > 0 ? (
-                statistics.recentTestResults.map((result) => (
+              ) : testResults && testResults.length > 0 ? (
+                testResults.map((result) => (
                   <tr key={result.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -192,9 +238,12 @@ export default function TeacherDashboardPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{result.score}%</div>
+                      {result.level && (
+                        <div className="text-xs text-gray-500">Level: {result.level}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(result.completedAt).toLocaleDateString('en-US', {
+                      {new Date(result.submittedAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
@@ -208,7 +257,12 @@ export default function TeacherDashboardPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    No recent test results available
+                    <div className="text-center">
+                      <p className="text-gray-500 mb-2">No recent test results available</p>
+                      <p className="text-xs text-gray-400">
+                        Test results will appear here once students complete your tests
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -216,7 +270,7 @@ export default function TeacherDashboardPage() {
           </table>
         </div>
         <div className="px-6 py-4 border-t border-gray-200">
-          <a href="#" className="text-[#152C61] font-medium hover:text-[#AC292D] transition-colors">
+          <a href="/teacher/test-results" className="text-[#152C61] font-medium hover:text-[#AC292D] transition-colors">
             View all results →
           </a>
         </div>

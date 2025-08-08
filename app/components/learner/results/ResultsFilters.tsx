@@ -5,8 +5,8 @@ import FilterBar from '@/app/components/ui/FilterBar';
 interface ResultsFiltersProps {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
-  typeFilter: 'all' | 'Reading' | 'Listening' | 'Grammar';
-  setTypeFilter: (value: 'all' | 'Reading' | 'Listening' | 'Grammar') => void;
+  typeFilter: 'all' | 'reading' | 'listening';
+  setTypeFilter: (value: 'all' | 'reading' | 'listening') => void;
   scoreFilter: 'all' | 'excellent' | 'good' | 'needs-improvement';
   setScoreFilter: (value: 'all' | 'excellent' | 'good' | 'needs-improvement') => void;
   dateFilter: 'all' | 'today' | 'week' | 'month';
@@ -33,9 +33,8 @@ const ResultsFilters = ({
       label: 'Test Type',
       options: [
         { value: 'all', label: 'All Types' },
-        { value: 'Reading', label: 'Reading' },
-        { value: 'Listening', label: 'Listening' },
-        { value: 'Grammar', label: 'Grammar' }
+        { value: 'reading', label: 'Reading' },
+        { value: 'listening', label: 'Listening' }
       ],
       value: typeFilter,
       onChange: setTypeFilter

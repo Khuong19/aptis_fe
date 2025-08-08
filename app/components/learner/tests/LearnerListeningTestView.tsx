@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Badge } from "@/app/components/ui/basic";
 import { QuestionSet, Question } from "@/app/types/question-bank";
 import { useRouter } from "next/navigation";
+import { getMergedAudioUrl } from "@/app/lib/api/audioService";
 
 interface LearnerListeningTestViewProps {
   test: any;
@@ -28,6 +29,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Set<string>>(
     new Set()
   );
+  const [currentLectureIndex, setCurrentLectureIndex] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const router = useRouter();
@@ -64,14 +66,27 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
         audio.removeEventListener("ended", () => setIsPlaying(false));
       };
     }
-  }, [currentPartIndex]);
+  }, [currentPartIndex, currentLectureIndex]);
+
+  // Reset audio when lecture changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && currentQuestionSet?.part === 4) {
+      audio.load(); // Reload audio for new lecture
+      setIsPlaying(false);
+      setAudioCurrentTime(0);
+    }
+  }, [currentLectureIndex, currentQuestionSet?.part]);
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
+    const h = Math.floor(seconds / 3600)
       .toString()
       .padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+    const m = Math.floor((seconds % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = Math.floor(seconds % 60).toString().padStart(2, "0");
+    return `${h}:${m}:${s}`;
   };
 
   const handlePlayPause = () => {
@@ -106,18 +121,56 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   };
 
   const handleNext = () => {
+    // For Part 1, navigate between questions first
+    if (currentQuestionSet?.part === 1) {
+      const conversations = currentQuestionSet.conversations || [];
+      if (currentQuestionIndex < conversations.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        return;
+      }
+    }
+    
+    // For Part 4, navigate between lectures first
+    if (currentQuestionSet?.part === 4) {
+      const lectures = currentQuestionSet.lectures || [];
+      if (currentLectureIndex < lectures.length - 1) {
+        setCurrentLectureIndex(prev => prev + 1);
+        return;
+      }
+    }
+    
+    // Then navigate between parts
     if (currentPartIndex < totalParts - 1) {
       setCurrentPartIndex((prev) => prev + 1);
       setCurrentQuestionIndex(0); // Reset question index for new part
+      setCurrentLectureIndex(0); // Reset lecture index for new part
     } else {
       handleTestComplete();
     }
   };
 
   const handleBack = () => {
+    // For Part 1, navigate between questions first
+    if (currentQuestionSet?.part === 1) {
+      if (currentQuestionIndex > 0) {
+        setCurrentQuestionIndex(prev => prev - 1);
+        return;
+      }
+    }
+    
+    // For Part 4, navigate between lectures first
+    if (currentQuestionSet?.part === 4) {
+      if (currentLectureIndex > 0) {
+        setCurrentLectureIndex(prev => prev - 1);
+        return;
+      }
+    }
+    
+    // Then navigate between parts
     if (currentPartIndex > 0) {
       setCurrentPartIndex((prev) => prev - 1);
       setCurrentQuestionIndex(0); // Reset question index for previous part
+      setCurrentLectureIndex(0); // Reset lecture index for previous part
     }
   };
 
@@ -163,12 +216,11 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
           <audio
             ref={audioRef}
-            src={`${
-              process.env.NEXT_PUBLIC_API_URL
-            }/${currentConversation.audioUrl?.replace(
-              "http://localhost:5000/api/",
-              ""
-            )}`}
+            src={
+              currentConversation.audioUrl 
+                ? `${process.env.NEXT_PUBLIC_API_URL}/${currentConversation.audioUrl.replace("http://localhost:5000/api/", "")}`
+                : "/audio/sample.mp3"
+            }
             preload="metadata"
           />
         </div>
@@ -225,33 +277,11 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           </div>
         </div>
 
-        {/* Navigation for Part 1 questions */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() =>
-              setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))
-            }
-            disabled={currentQuestionIndex === 0}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous Question
-          </button>
-
+        {/* Question counter for Part 1 */}
+        <div className="flex justify-center items-center">
           <span className="text-sm text-gray-600">
             Question {currentQuestionIndex + 1} of {conversations.length}
           </span>
-
-          <button
-            onClick={() =>
-              setCurrentQuestionIndex(
-                Math.min(conversations.length - 1, currentQuestionIndex + 1)
-              )
-            }
-            disabled={currentQuestionIndex === conversations.length - 1}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next Question
-          </button>
         </div>
       </div>
     );
@@ -300,12 +330,9 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           <audio
             ref={audioRef}
             src={
-              `${
-                process.env.NEXT_PUBLIC_API_URL
-              }/${questionSet.monologue?.audioUrl?.replace(
-                "http://localhost:5000/api/",
-                ""
-              )}` || "/audio/sample.mp3"
+              questionSet.monologue?.audioUrl 
+                ? `${process.env.NEXT_PUBLIC_API_URL}/${questionSet.monologue.audioUrl.replace("http://localhost:5000/api/", "")}`
+                : "/audio/sample.mp3"
             }
             preload="metadata"
           />
@@ -353,6 +380,32 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   // Part 3: Opinion matching
   const renderListeningPart3 = (questionSet: any) => {
     const questions = questionSet.questions || [];
+    const [audioSrc, setAudioSrc] = useState<string>("/audio/sample.mp3");
+    const [isLoadingAudio, setIsLoadingAudio] = useState(true);
+
+    // Load merged audio for Part 3
+    useEffect(() => {
+      const loadMergedAudio = async () => {
+        try {
+          setIsLoadingAudio(true);
+          const mergedAudioUrl = await getMergedAudioUrl(questionSet);
+          setAudioSrc(mergedAudioUrl);
+        } catch (error) {
+          console.error('Error loading merged audio:', error);
+          // Fallback to first audio file
+          const audioFile = questionSet.audioFiles?.[0];
+          setAudioSrc(
+            audioFile 
+              ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${audioFile.replace("http://localhost:5000/api/uploads/", "")}`
+              : "/audio/sample.mp3"
+          );
+        } finally {
+          setIsLoadingAudio(false);
+        }
+      };
+
+      loadMergedAudio();
+    }, [questionSet]);
 
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -381,22 +434,22 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
           <div className="flex items-center space-x-4">
             <button
               onClick={handlePlayPause}
-              className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600"
+              disabled={isLoadingAudio}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isLoadingAudio 
+                  ? "bg-gray-300 cursor-not-allowed" 
+                  : "bg-blue-500 text-white hover:bg-blue-600"
+              }`}
             >
-              {isPlaying ? "⏸️" : "▶️"}
+              {isLoadingAudio ? "⏳" : isPlaying ? "⏸️" : "▶️"}
             </button>
-            <span className="text-sm">Play/Stop</span>
+            <span className="text-sm">
+              {isLoadingAudio ? "Loading audio..." : "Play/Stop"}
+            </span>
           </div>
           <audio
             ref={audioRef}
-            src={
-              `${
-                process.env.NEXT_PUBLIC_API_URL
-              }/${questionSet.audioUrl?.replace(
-                "http://localhost:5000/api/",
-                ""
-              )}` || "/audio/sample.mp3"
-            }
+            src={audioSrc}
             preload="metadata"
           />
         </div>
@@ -439,31 +492,42 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
   // Part 4: Multiple choice with multiple questions
   const renderListeningPart4 = (questionSet: any) => {
     const lectures = questionSet.lectures || [];
-    const allQuestions = lectures.flatMap((lecture: any) =>
-      (lecture.questions || []).map((q: any) => ({
-        ...q,
-        lectureTitle: lecture.topic,
-        speaker: lecture.speaker,
-      }))
-    );
+    const currentLecture = lectures[currentLectureIndex];
+    
+    if (!currentLecture) {
+      return (
+        <div className="max-w-4xl mx-auto text-center py-8">
+          <p className="text-gray-500">No lecture available</p>
+        </div>
+      );
+    }
 
     return (
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Lecture Navigation */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="flex justify-between items-start">
-            <p className="text-sm font-medium mb-2">
-              Listen to lectures about AI and answer the questions below.
-            </p>
-            <button
-              onClick={() => handleBookmark(`${questionSet.id}-general`)}
-              className={`px-3 py-1 border rounded ${
-                bookmarkedQuestions.has(`${questionSet.id}-general`)
-                  ? "bg-yellow-100 border-yellow-400"
-                  : "border-gray-300"
-              }`}
-            >
-              🏴 Bookmark
-            </button>
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-medium text-lg">Lecture {currentLectureIndex + 1} of {lectures.length}</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Topic: {currentLecture.topic}
+              </p>
+              {currentLecture.speaker && (
+                <p className="text-sm text-gray-500">Speaker: {currentLecture.speaker}</p>
+              )}
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleBookmark(`${questionSet.id}-lecture-${currentLectureIndex}`)}
+                className={`px-3 py-1 border rounded ${
+                  bookmarkedQuestions.has(`${questionSet.id}-lecture-${currentLectureIndex}`)
+                    ? "bg-yellow-100 border-yellow-400"
+                    : "border-gray-300"
+                }`}
+              >
+                🏴 Bookmark
+              </button>
+            </div>
           </div>
         </div>
 
@@ -477,25 +541,28 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
               {isPlaying ? "⏸️" : "▶️"}
             </button>
             <span className="text-sm">Play/Stop</span>
+            <span className="text-sm text-gray-500">
+              {formatTime(audioCurrentTime)} / {formatTime(audioDuration)}
+            </span>
           </div>
           <audio
             ref={audioRef}
             src={
-              `${
-                process.env.NEXT_PUBLIC_API_URL
-              }/${questionSet.audioUrl?.replace(
-                "http://localhost:5000/api/",
-                ""
-              )}` || "/audio/sample.mp3"
+              questionSet.audioFiles && questionSet.audioFiles[currentLectureIndex]
+                ? `${process.env.NEXT_PUBLIC_API_URL}/${questionSet.audioFiles[currentLectureIndex].replace("http://localhost:5000/api/", "")}`
+                : "/audio/sample.mp3"
             }
             preload="metadata"
+            onError={(e) => {
+              console.error('Audio error:', e);
+            }}
           />
         </div>
 
-        {/* Questions */}
+        {/* Questions for Current Lecture */}
         <div className="space-y-6">
-          {allQuestions.map((question: any, index: number) => {
-            const questionKey = `${questionSet.id}-${question.lectureTitle}-q${index}`;
+          {currentLecture.questions && currentLecture.questions.map((question: any, index: number) => {
+            const questionKey = `${questionSet.id}-${currentLecture.topic}-q${index}`;
 
             return (
               <div key={index} className="bg-white border rounded-lg p-6">
@@ -503,7 +570,7 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
                   <div>
                     <h3 className="font-medium">{question.text}</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      {question.lectureTitle} - {question.speaker}
+                      Question {index + 1} of {currentLecture.questions.length}
                     </p>
                   </div>
                   <button
@@ -552,6 +619,8 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
             );
           })}
         </div>
+
+        
       </div>
     );
   };
@@ -638,6 +707,13 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
     // Add current question index for Part 1, or 1 for other parts
     if (currentQuestionSet?.part === 1) {
       total += currentQuestionIndex + 1;
+    } else if (currentQuestionSet?.part === 4) {
+      // For Part 4, add questions from previous lectures plus current lecture questions
+      const lectures = currentQuestionSet.lectures || [];
+      for (let i = 0; i < currentLectureIndex; i++) {
+        total += lectures[i]?.questions?.length || 0;
+      }
+      total += 1; // Current lecture is counted as 1 question set
     } else {
       total += 1;
     }
@@ -672,24 +748,17 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      {/* Back to Practice button */}
-      <div className="absolute top-4 left-4 z-10">
-        <button
-          onClick={() => router.push("/learner/practice")}
-          className="px-4 py-2 rounded-lg border border-gray-300 shadow-sm text-white"
-          style={{
-            backgroundColor: "rgb(42 65 115 / var(--tw-border-opacity, 1))",
-          }}
-        >
-          ← Back to Practice
-        </button>
-      </div>
-
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
+              <button
+                onClick={() => router.push("/learner/practice")}
+                className="px-3 py-1 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                ← Back to Practice
+              </button>
               <div className="flex items-center space-x-2 text-lg font-medium">
                 <span
                   className={`${
@@ -734,13 +803,19 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
       <div className="bg-white border-t shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <button
-              onClick={handleBack}
-              disabled={currentPartIndex === 0}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Back
-            </button>
+                         <button
+               onClick={handleBack}
+               disabled={
+                 currentQuestionSet?.part === 1 
+                   ? currentQuestionIndex === 0 && currentPartIndex === 0
+                   : currentQuestionSet?.part === 4 
+                     ? currentLectureIndex === 0 && currentPartIndex === 0
+                     : currentPartIndex === 0
+               }
+               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               {currentQuestionSet?.part === 1 ? "Previous" : currentQuestionSet?.part === 4 ? "Previous" : "Back"}
+             </button>
 
             <div className="flex items-center space-x-4">
               <button
@@ -754,18 +829,30 @@ const LearnerListeningTestView: React.FC<LearnerListeningTestViewProps> = ({
                 Flag 🏴
               </button>
 
-              <button
-                onClick={
-                  currentPartIndex === totalParts - 1
-                    ? handleTestComplete
-                    : handleNext
-                }
-                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              >
-                {currentPartIndex === totalParts - 1
-                  ? "Submit Test"
-                  : "Next Part"}
-              </button>
+                             <button
+                 onClick={
+                   currentPartIndex === totalParts - 1 && 
+                   (currentQuestionSet?.part === 1 
+                     ? currentQuestionIndex === (currentQuestionSet?.conversations?.length - 1)
+                     : currentQuestionSet?.part === 4 
+                       ? currentLectureIndex === (currentQuestionSet?.lectures?.length - 1)
+                       : true)
+                     ? handleTestComplete
+                     : handleNext
+                 }
+                 className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+               >
+                 {currentPartIndex === totalParts - 1 && 
+                  (currentQuestionSet?.part === 1 
+                    ? currentQuestionIndex === (currentQuestionSet?.conversations?.length - 1)
+                    : currentQuestionSet?.part === 4 
+                      ? currentLectureIndex === (currentQuestionSet?.lectures?.length - 1)
+                      : true)
+                   ? "Submit Test"
+                   : currentQuestionSet?.part === 1 || currentQuestionSet?.part === 4
+                     ? "Next"
+                     : "Next Part"}
+               </button>
             </div>
           </div>
         </div>

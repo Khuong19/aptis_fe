@@ -47,42 +47,51 @@ export const SentenceOrderingComponent: React.FC<SentenceOrderingComponentProps>
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Update parent component when order changes
+  // Use useRef to avoid dependency on onOrderChange
+  const onOrderChangeRef = useRef(onOrderChange);
+  
   useEffect(() => {
-    if (onOrderChange) {
-      onOrderChange(orderedSentences);
+    onOrderChangeRef.current = onOrderChange;
+  }, [onOrderChange]);
+
+  useEffect(() => {
+    if (onOrderChangeRef.current) {
+      onOrderChangeRef.current(orderedSentences);
     }
-  }, [orderedSentences, onOrderChange]);
+  }, [orderedSentences]); // Remove onOrderChange dependency
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, sentence: OrderingSentence, index: number) => {
     if (readOnly || sentence.isExample) return;
     
     e.dataTransfer.setData('text/plain', sentence.id);
+    e.dataTransfer.effectAllowed = 'move';
     setDraggedSentence(sentence);
     
-    // Add a slight delay for visual feedback
-    setTimeout(() => {
-      e.currentTarget.classList.add('opacity-50');
-    }, 0);
+    // Add visual feedback immediately
+    e.currentTarget.style.opacity = '0.5';
+    e.currentTarget.style.transform = 'scale(0.98)';
   };
 
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     if (readOnly) return;
     
-    e.currentTarget.classList.remove('opacity-50');
+    // Reset visual feedback
+    e.currentTarget.style.opacity = '1';
+    e.currentTarget.style.transform = 'scale(1)';
     setDraggedSentence(null);
     setDragOverIndex(null);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
-    if (readOnly || sentences[index].isExample) return;
+    if (readOnly || orderedSentences[index].isExample) return;
     
     setDragOverIndex(index);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
     e.preventDefault();
-    if (readOnly || sentences[dropIndex].isExample || !draggedSentence) return;
+    if (readOnly || orderedSentences[dropIndex].isExample || !draggedSentence) return;
     
     const draggedId = e.dataTransfer.getData('text/plain');
     const dragIndex = orderedSentences.findIndex(s => s.id === draggedId);
@@ -112,7 +121,14 @@ export const SentenceOrderingComponent: React.FC<SentenceOrderingComponentProps>
       <div className="text-sm text-gray-600 mb-6">
         {readOnly 
           ? "Review the order of sentences below."
-          : "Drag and drop the sentences to put them in the correct order. The first sentence is provided as an example."}
+          : (
+            <div>
+              <p>Drag and drop the sentences to put them in the correct order. The first sentence is provided as an example.</p>
+              <p className="mt-2 text-xs text-gray-500">
+                💡 Tip: Look for words that connect sentences together (like "however", "then", "first", etc.)
+              </p>
+            </div>
+          )}
       </div>
       
       <div className="space-y-3">
@@ -125,12 +141,13 @@ export const SentenceOrderingComponent: React.FC<SentenceOrderingComponentProps>
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={(e) => handleDrop(e, index)}
             className={`
-              p-4 rounded-md border cursor-${!readOnly && !sentence.isExample ? 'move' : 'default'}
+              p-4 rounded-md border group relative
               ${sentence.isExample ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}
-              ${dragOverIndex === index ? 'border-blue-500 border-2 shadow-md' : ''}
-              ${!readOnly && !sentence.isExample ? 'hover:border-gray-300 hover:shadow-sm' : ''}
+              ${dragOverIndex === index ? 'border-blue-500 border-2 shadow-md bg-blue-50' : ''}
+              ${!readOnly && !sentence.isExample ? 'hover:border-gray-300 hover:shadow-sm cursor-move' : 'cursor-default'}
               transition-all duration-200
             `}
+            style={{ userSelect: 'none' }}
           >
             <div className="flex items-start">
               <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium mr-4 ${
@@ -139,11 +156,21 @@ export const SentenceOrderingComponent: React.FC<SentenceOrderingComponentProps>
                 {index + 1}
               </div>
               <div className="flex-grow text-gray-900 leading-relaxed">{sentence.text}</div>
-              {sentence.isExample && (
-                <div className="ml-4 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                  Example
-                </div>
-              )}
+              <div className="flex items-center ml-4 space-x-2">
+                {sentence.isExample && (
+                  <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
+                    Example
+                  </div>
+                )}
+                {!readOnly && !sentence.isExample && (
+                  <div className="flex flex-col items-center text-gray-400 group-hover:text-gray-600 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M10 4a2 2 0 11-4 0 2 2 0 014 0zM10 8a2 2 0 11-4 0 2 2 0 014 0zM10 12a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <span className="text-xs mt-1">Drag</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ))}

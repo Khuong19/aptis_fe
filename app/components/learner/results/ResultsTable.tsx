@@ -39,13 +39,13 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      result.type === 'Reading' 
+                      result.type?.toLowerCase() === 'reading' 
                         ? 'bg-blue-100 text-blue-800' 
-                        : result.type === 'Listening'
+                        : result.type?.toLowerCase() === 'listening'
                         ? 'bg-purple-100 text-purple-800'
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {result.type}
+                      {result.type ? result.type.charAt(0).toUpperCase() + result.type.slice(1) : 'Unknown'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -7,6 +7,14 @@ import {
 } from './tokenManager';
 import Cookies from 'js-cookie';
 
+/**
+ * Get the full API URL for a given path
+ */
+const getApiUrl = (path: string): string => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  return path.startsWith('http') ? path : `${apiUrl}${path}`;
+};
+
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;

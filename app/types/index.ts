@@ -87,14 +87,17 @@ export interface LearnerTest {
 
 export interface TestResult {
   id: string;
+  accuracy: number;
   testId: string;
   testTitle: string;
+  level: string;
   type: 'Reading' | 'Listening';
   score: number;
   dateTaken: string;
   timeSpent: number;
   correctAnswers: number;
   totalQuestions: number;
+  levelScore: number;
 }
 
 export interface StudyMaterial {
