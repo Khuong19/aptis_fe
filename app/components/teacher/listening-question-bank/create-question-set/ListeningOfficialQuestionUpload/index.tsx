@@ -727,7 +727,7 @@ export default function ListeningOfficialQuestionUploadForm({ onSuccess }: Liste
       }
 
       // --- BỔ SUNG AUDIO URL CHO PART 1-2-3 ---
-      let questionsWithAudio = questionSet.questions;
+      const questionsWithAudio = questionSet.questions;
       let monologueWithAudio = previewData.monologue;
       let conversationsWithAudio = previewData.conversations;
       let speakersWithAudio = previewData.speakers;

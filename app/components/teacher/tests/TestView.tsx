@@ -74,7 +74,7 @@ const TestView: React.FC<TestViewProps> = ({ test }) => {
     const gapRegex = /\[(\d+)\]/g;
     let lastIndex = 0;
     let match;
-    let elements = [];
+    const elements = [];
     let gapCount = 0;
     while ((match = gapRegex.exec(passage)) !== null) {
       const start = match.index;
